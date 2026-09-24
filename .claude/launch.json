@@ -4,7 +4,10 @@
     {
       "name": "mansion",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "E:/Proyectos/mansion"],
+      "runtimeArgs": [
+        "E:/Proyectos/mansion/tools/servidor.py",
+        "8123"
+      ],
       "port": 8123
     }
   ]

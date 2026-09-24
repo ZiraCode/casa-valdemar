@@ -10,7 +10,8 @@ Las texturas y el sonido se generan por código, así que no hay ficheros de rec
 El juego usa módulos ES, así que necesita un servidor HTTP (abrir `index.html` con doble clic no funciona):
 
 - **Windows:** doble clic en `iniciar.bat` (solo es un atajo que arranca un servidor local)
-- **Cualquier sistema:** `python -m http.server 8000` en esta carpeta y abrir <http://localhost:8000>
+- **Cualquier sistema:** `python tools/servidor.py 8000` en esta carpeta y abrir <http://localhost:8000>
+- **Ajustar la luz:** abre `http://localhost:8000/?luz` y pulsa **L** en la partida
 - **En internet:** se sube tal cual a cualquier alojamiento estático (GitHub Pages, Netlify, itch.io...). Ver [docs/despliegue.md](docs/despliegue.md).
 
 Hace falta conexión a internet: three.js y las fuentes se cargan desde un CDN.

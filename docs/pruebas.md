@@ -11,7 +11,8 @@ Para comprobar la sintaxis de un módulo, cópialo con extensión `.mjs` a una c
 
 ## 2. En el navegador
 
-Arranca el servidor con `python -m http.server 8000` y abre `http://localhost:8000/?debug`. En el panel de navegador
+Arranca el servidor con `python tools/servidor.py 8000` y abre `http://localhost:8000/?debug` (se puede combinar con
+`?debug&luz` para tener también el panel de luz). En el panel de navegador
 de la app de escritorio, usa `preview_start` con la configuración `mansion` (puerto 8123).
 
 Con `?debug` existe `window.__casa`, que expone `{ THREE, scene, camera, renderer, player, world, ghosts, mansion, post, audio, G, tick }`.

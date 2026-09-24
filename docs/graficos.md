@@ -165,11 +165,14 @@ assets/cuadros.js                      CUADROS (parejas, tamaño y dónde se cue
 aplica **barniz** (oscurece y amarillea), **manchas** y **grano**, con parámetros ajustables en el taller.
 Cualquier familia puede usar este mecanismo.
 
-**Cuándo se ve la versión tétrica** (`REGLAS` en `assets/cuadros.js`):
-- Fuera del haz de la linterna: en la oscuridad, de reojo o a la luz de una vela. Al iluminarlo de lleno (dentro de 20° del
-  centro del haz) se ve la normal. Para volver a la tétrica hay que salir 6° más, para que no parpadee en el borde.
-- Durante el destello de los relámpagos.
-- Para siempre, a partir de la cuarta aparición desterrada (`tetricosTrasDesterrar`). El juego avisa con un susurro y un mensaje.
+**Cuándo se ve la versión tétrica** (`REGLAS` en `assets/cuadros.js`). Un cuadro **solo cambia mientras no lo estás viendo**:
+fuera de pantalla (fuera del campo de visión de la cámara) o tapado por una pared. Nunca lo ves cambiar; solo notas al volver
+a mirarlo que ya no es igual.
+- Cada vez que deja de verse, se decide cómo estará la próxima vez: tétrico con probabilidad `probabilidad` (0,3) +
+  `probabilidadPorLocura` (0,4) × la cordura perdida.
+- Durante el destello de los relámpagos se ve tétrico (el propio destello disimula el cambio).
+- A partir de la cuarta aparición desterrada (`tetricosTrasDesterrar`), el juego avisa con un susurro y un mensaje, y la
+  próxima vez que mires cada cuadro estará tétrico para siempre.
 
 **En el taller:** los cuadros llevan la marca **IMG**, la ficha tiene un botón para saltar entre la versión normal y la
 tétrica, y la vista 3D los cuelga a su tamaño real. Puedes **arrastrar una imagen** sobre la vista 2D o 3D para probarla

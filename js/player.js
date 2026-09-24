@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { CELL, LEVEL_H } from './map.js';
 import * as TX from './textures.js';
+import { LUZ } from './iluminacion.js';
 
 const EYE = 1.62;
 const RADIUS = 0.28;
@@ -33,23 +34,22 @@ export class Player {
     // sigue a la cámara con algo de retraso para que pese en la mano.
     this.rig = new THREE.Object3D();
     scene.add(this.rig);
-    this.spot = new THREE.SpotLight(0xfff2de, 240, 30, 0.5, 0.5, 2);
+    // intensidad, alcance, apertura, penumbra y caída salen de LUZ en cada fotograma
+    this.spot = new THREE.SpotLight(0xfff2de, 0, LUZ.linterna.alcance, 0.6, 0.85, 1.3);
     this.spot.position.set(0.16, -0.14, 0.05);
     this.spot.castShadow = true;
     this.spot.shadow.mapSize.set(1024, 1024);
     this.spot.shadow.camera.near = 0.15;
-    this.spot.shadow.camera.far = 30;
+    this.spot.shadow.camera.far = LUZ.linterna.alcance;
     this.spot.shadow.bias = -0.0006;
     this.spot.shadow.normalBias = 0.02;
-    this.spot.map = TX.textura('lente-linterna');
+    this.rehacerLente();
     this.rig.add(this.spot);
     this.rig.add(this.spot.target);
     this.spot.target.position.set(0, 0, -6);
-    this.spill = new THREE.PointLight(0xffe4c4, 1.2, 4.5, 2);
+    this.spill = new THREE.PointLight(0xffe4c4, 0, 3, 2);
     this.spill.position.set(0, 0.1, -0.4);
     this.rig.add(this.spill);
-    this.baseSpot = 240;
-    this.baseSpill = 1.2;
     this.lightFactor = 1;
     this.flicker = 0;       // segundos restantes de parpadeo
     this.flickerState = 1;
@@ -72,6 +72,13 @@ export class Player {
     dy = Math.max(-150, Math.min(150, dy));
     this.mouse.dx += dx;
     this.mouse.dy += dy;
+  }
+
+  // Regenera la textura de la lente con los valores de LUZ.lente (el panel de luz la llama al cambiarlos)
+  rehacerLente() {
+    const vieja = this.spot.map;
+    this.spot.map = TX.textura('lente-linterna', LUZ.lente);
+    if (vieja) vieja.dispose();
   }
 
   startFlicker(duration) {
@@ -171,8 +178,14 @@ export class Player {
       factor *= this.flickerState;
     }
     this.lightFactor = factor;
-    this.spot.intensity = this.baseSpot * factor;
-    this.spill.intensity = this.baseSpill * factor;
+    const L = LUZ.linterna;
+    this.spot.intensity = L.intensidad * factor;
+    this.spot.distance = L.alcance;
+    this.spot.angle = THREE.MathUtils.degToRad(L.angulo);
+    this.spot.penumbra = L.penumbra;
+    this.spot.decay = L.caida;
+    this.spill.intensity = LUZ.relleno.intensidad * factor;
+    this.spill.distance = LUZ.relleno.alcance;
 
     this.spot.getWorldPosition(this.lightPos);
     this.lightDir.set(0, 0, -1).applyQuaternion(this.rig.quaternion);

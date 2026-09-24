@@ -6,6 +6,7 @@ import { Post } from '../js/post.js';
 import { crearUniforms, materialAparicion, ponerFotograma } from '../js/ghostmat.js';
 import { TIPOS } from '../assets/apariciones.js';
 import { CUADROS } from '../assets/cuadros.js';
+import { LUZ } from '../js/iluminacion.js';
 
 const C = 2, H = 3, N = 3;          // casilla, altura, casillas por lado
 const HALF = (C * N) / 2;           // la habitación va de -3 a 3 en x y z
@@ -48,6 +49,7 @@ export class Vista3D {
 
     this.texDef = {};
     for (const [k, id] of Object.entries(POR_DEFECTO)) this.texDef[k] = TX.textura(id);
+    this.texDef.luz = TX.textura('lente-linterna', LUZ.lente);   // la lente con los valores del juego
     this.propias = [];   // texturas creadas para la selección actual (se liberan al cambiar)
 
     const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.92, metalness: 0 }, o));
@@ -148,7 +150,8 @@ export class Vista3D {
     // linterna igual que la del jugador
     this.rig = new THREE.Object3D();
     this.scene.add(this.rig);
-    this.spot = new THREE.SpotLight(0xfff2de, 240, 30, 0.5, 0.5, 2);
+    // misma linterna que en el juego (valores de js/iluminacion.js, aplicados en setLuz)
+    this.spot = new THREE.SpotLight(0xfff2de, 0, LUZ.linterna.alcance, 0.6, 0.85, 1.3);
     this.spot.position.set(0.16, -0.14, 0.05);
     this.spot.castShadow = true;
     this.spot.shadow.mapSize.set(1024, 1024);
@@ -158,12 +161,12 @@ export class Vista3D {
     this.spot.map = this.texDef.luz;
     this.rig.add(this.spot, this.spot.target);
     this.spot.target.position.set(0, 0, -6);
-    this.spill = new THREE.PointLight(0xffe4c4, 1.2, 4.5, 2);
+    this.spill = new THREE.PointLight(0xffe4c4, 0, 3, 2);
     this.spill.position.set(0, 0.1, -0.4);
     this.rig.add(this.spill);
 
     // vela en una esquina
-    this.vela = new THREE.PointLight(0xff9a40, 4.5, 7, 2);
+    this.vela = new THREE.PointLight(0xff9a40, 0, LUZ.fuentes.vela.alcance, 2);
     this.vela.position.set(HALF - 0.6, 1.3, -HALF + 0.6);
     this.scene.add(this.vela);
     this.llamaVela = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -177,9 +180,18 @@ export class Vista3D {
   setLuz(modo) {
     this.luz = modo;
     const lint = modo === 'linterna', vela = modo === 'vela', plena = modo === 'plena';
-    this.spot.intensity = lint ? 240 : 0;
-    this.spill.intensity = lint ? 1.2 : 0;
-    this.vela.intensity = vela ? 4.5 : 0;
+    const L = LUZ.linterna;
+    this.spot.intensity = lint ? L.intensidad : 0;
+    this.spot.distance = L.alcance;
+    this.spot.angle = THREE.MathUtils.degToRad(L.angulo);
+    this.spot.penumbra = L.penumbra;
+    this.spot.decay = L.caida;
+    this.spill.intensity = lint ? LUZ.relleno.intensidad : 0;
+    this.spill.distance = LUZ.relleno.alcance;
+    this.vela.intensity = vela ? LUZ.fuentes.vela.intensidad : 0;
+    this.fog.density = LUZ.niebla;
+    this.hemi.intensity = LUZ.ambiente;
+    this.post.uniforms.uExposure.value = LUZ.exposicion;
     this.llamaVela.visible = vela;
     this.plena.intensity = plena ? 2.2 : 0;
     this.scene.fog = plena ? null : this.fog;
@@ -299,7 +311,7 @@ export class Vista3D {
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
     this.rig.position.copy(this.camera.position);
     this.rig.quaternion.slerp(this.camera.quaternion, 1 - Math.exp(-dt * 13));
-    if (this.luz === 'vela') this.vela.intensity = 4.5 * (0.86 + 0.07 * Math.sin(t * 11) + 0.06 * Math.sin(t * 27.3));
+    if (this.luz === 'vela') this.vela.intensity = LUZ.fuentes.vela.intensidad * (0.86 + 0.07 * Math.sin(t * 11) + 0.06 * Math.sin(t * 27.3));
     if (this.figura.visible) this.figura.rotation.y = Math.atan2(this.pos.x - this.figura.position.x, this.pos.z - this.figura.position.z);
     this.uniAp.uTime.value = t;
     if (this.fotos.length > 1) {

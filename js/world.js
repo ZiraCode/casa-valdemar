@@ -4,6 +4,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CELL, LEVEL_H, COLS, ROWS, LEVELS, WALL_CHARS } from './map.js';
 import * as TX from './textures.js';
 import { CUADROS, REGLAS, DIRECCIONES } from '../assets/cuadros.js';
+import { LUZ, TIPO_FUENTE } from './iluminacion.js';
 
 const C = CELL, H = LEVEL_H;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -133,6 +134,9 @@ export class World {
 
     this.cuadros = [];
     this.cuadrosTetricos = false;
+    this.cordura = 1;                 // 0-1, la pone main.js; influye en los cuadros
+    this._frustum = new THREE.Frustum();
+    this._pm = new THREE.Matrix4();
     this.reservadas = this.carasReservadas();
 
     this.makeMaterials();
@@ -260,9 +264,10 @@ export class World {
   block(L, i, j, x, z, hw, hd) {
     this.m.addBlocker(L, i, j, { x0: x - hw, x1: x + hw, z0: z - hd, z1: z + hd });
   }
-  addLight(L, pos, color, intensity, distance, kind, obj = null) {
+  // escala: multiplicador sobre la intensidad de su tipo en LUZ.fuentes (1 = normal)
+  addLight(L, pos, color, escala, kind, obj = null) {
     this.lightSources.push({
-      L, pos: pos.clone(), color: new THREE.Color(color), intensity, distance, kind,
+      L, pos: pos.clone(), color: new THREE.Color(color), escala, kind,
       seed: this.rand() * 100, obj, dim: 1,
     });
   }
@@ -313,7 +318,7 @@ export class World {
             const nch = this.m.get(L, ni, nj);
             if (ch === 'F') this.buildFireplace(L, cx, cz, dx, dz, rx, rz);
             if (ch === 'w') {
-              this.addLight(L, new THREE.Vector3(cx + dx * 0.8, y0 + 1.7, cz + dz * 0.8), 0x5a78c0, 1.6, 5.5, 'moon');
+              this.addLight(L, new THREE.Vector3(cx + dx * 0.8, y0 + 1.7, cz + dz * 0.8), 0x5a78c0, 1, 'moon');
             }
             if (ch === '#' && (L === 1 || L === 2) && nch === '.' && this.rand() < 0.1
                 && !this.reservadas.has(`${L}:${i},${j}:${dx},${dz}`)) {
@@ -374,7 +379,7 @@ export class World {
     this.addFlame(L, px - rx * 0.22, y0 + 0.34, pz - rz * 0.22, 0.28, 0.5, 'fire');
     this.addGlow(L, cx + dx * 0.3, y0 + 0.5, cz + dz * 0.3, 2.2, null, 0.5);
     const pos = new THREE.Vector3(cx + dx * 0.7, y0 + 0.7, cz + dz * 0.7);
-    this.addLight(L, pos, 0xff7028, 18, 11, 'fire');
+    this.addLight(L, pos, 0xff7028, 1, 'fire');
     this.fireplaces.push({ L, pos });
   }
 
@@ -409,7 +414,7 @@ export class World {
       const ancho = q.alto * (normal.image.width / normal.image.height);
       for (const s of q.sitios) {
         const [dx, dz] = DIRECCIONES[s.pared];
-        const mat = new THREE.MeshStandardMaterial({ map: tetrica, color: 0xc4c4c4, roughness: 0.7 });
+        const mat = new THREE.MeshStandardMaterial({ map: normal, color: 0xc4c4c4, roughness: 0.8 });
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(ancho, q.alto), mat);
         const x = (s.col + 0.5) * C + dx * (C / 2 - 0.02);
         const z = (s.fila + 0.5) * C + dz * (C / 2 - 0.02);
@@ -417,7 +422,13 @@ export class World {
         mesh.rotation.y = Math.atan2(-dx, -dz);
         mesh.receiveShadow = true;
         this.groups[s.planta].add(mesh);
-        this.cuadros.push({ id: q.id, L: s.planta, mesh, normal, tetrica, pos: mesh.position.clone(), tetricoAhora: true });
+        const pos = mesh.position.clone();
+        this.cuadros.push({
+          id: q.id, L: s.planta, mesh, normal, tetrica,
+          esfera: new THREE.Sphere(pos, Math.hypot(ancho, q.alto) / 2),
+          delante: pos.clone().add(new THREE.Vector3(-dx * 0.15, 0, -dz * 0.15)),   // punto para la línea de visión
+          visto: false, tetricoBase: false, tetricoAhora: false,
+        });
       }
     }
   }
@@ -426,25 +437,23 @@ export class World {
     return this.cuadros.flatMap((q) => [q.normal, q.tetrica]);
   }
 
-  // Normal bajo el haz de la linterna; tétrico en la oscuridad, de reojo, con los
-  // relámpagos o para siempre tras el evento (REGLAS en assets/cuadros.js)
+  // Un cuadro solo cambia de versión mientras NO lo ves (fuera de pantalla o tapado).
+  // Al dejar de verlo se decide cómo estará la próxima vez: tétrico con cierta probabilidad
+  // (más cuanto menos cordura), o siempre tras el evento. Los relámpagos lo muestran tétrico
+  // durante el destello. Reglas en assets/cuadros.js.
   actualizarCuadros(player) {
-    const cosDentro = Math.cos(THREE.MathUtils.degToRad(REGLAS.anguloHaz));
-    const cosFuera = Math.cos(THREE.MathUtils.degToRad(REGLAS.anguloHaz + 6));
+    const cam = player.camera;
+    this._frustum.setFromProjectionMatrix(this._pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
     for (const q of this.cuadros) {
-      if (q.L !== player.L) continue;
-      let tetrico = this.cuadrosTetricos;
-      if (!tetrico) {
-        if (REGLAS.fueraDeLaLinterna) {
-          const vx = q.pos.x - player.lightPos.x, vy = q.pos.y - player.lightPos.y, vz = q.pos.z - player.lightPos.z;
-          const d = Math.hypot(vx, vy, vz) || 1;
-          const c = (vx * player.lightDir.x + vy * player.lightDir.y + vz * player.lightDir.z) / d;
-          // histéresis: para volverse normal hay que entrar bien en el haz; para volver a tétrico, salir del todo
-          const iluminado = player.lightOn && d < 16 && c > (q.tetricoAhora ? cosDentro : cosFuera);
-          tetrico = !iluminado;
-        }
-        if (REGLAS.relampagos && this.lightning > 0.3) tetrico = true;
+      const visible = q.L === player.L && this._frustum.intersectsSphere(q.esfera)
+        && this.m.los(cam.position, q.delante);
+      if (!visible && q.visto) {
+        const p = REGLAS.probabilidad + REGLAS.probabilidadPorLocura * (1 - this.cordura);
+        q.tetricoBase = this.cuadrosTetricos || Math.random() < p;
       }
+      if (!visible && this.cuadrosTetricos) q.tetricoBase = true;
+      q.visto = visible;
+      const tetrico = q.tetricoBase || (REGLAS.relampagos && this.lightning > 0.3);
       if (tetrico !== q.tetricoAhora) {
         q.tetricoAhora = tetrico;
         q.mesh.material.map = tetrico ? q.tetrica : q.normal;
@@ -632,7 +641,7 @@ export class World {
         this.addFlame(L, F.x + px, y0 + 1.27 + h, F.z + pz, 0.05, 0.1);
       }
       this.addGlow(L, F.x, y0 + 1.28, F.z, 0.7, null, 0.4);
-      this.addLight(L, new THREE.Vector3(F.x, y0 + 1.4, F.z), 0xff9a40, 4.5, 7, 'candle');
+      this.addLight(L, new THREE.Vector3(F.x, y0 + 1.4, F.z), 0xff9a40, 1, 'candle');
     } else {
       this.part(L, M.crate, new THREE.BoxGeometry(0.6, 0.6, 0.6), 0, 0.3, 0, F);
       this.part(L, M.wax, new THREE.CylinderGeometry(0.03, 0.035, 0.2, 7), 0.08, 0.7, 0.05, F);
@@ -640,7 +649,7 @@ export class World {
       this.part(L, M.wax, new THREE.CylinderGeometry(0.022, 0.025, 0.1, 6), -0.12, 0.65, -0.1, F);
       this.addFlame(L, F.x + 0.08, y0 + 0.84, F.z + 0.05, 0.06, 0.12);
       this.addGlow(L, F.x + 0.08, y0 + 0.85, F.z + 0.05, 0.6, null, 0.4);
-      this.addLight(L, new THREE.Vector3(F.x + 0.08, y0 + 1.0, F.z + 0.05), 0xff9040, 3.5, 6, 'candle');
+      this.addLight(L, new THREE.Vector3(F.x + 0.08, y0 + 1.0, F.z + 0.05), 0xff9040, 0.8, 'candle');
     }
     this.block(L, i, j, F.x, F.z, 0.38, 0.38);
   }
@@ -671,7 +680,7 @@ export class World {
     g.add(anchor);
     this.groups[L].add(g);
     this.lamps.push({ g, seed: this.rand() * 10, amp: 0.02 + this.rand() * 0.03 });
-    this.addLight(L, new THREE.Vector3(), 0xff9a3c, 6, 8.5, 'lamp', anchor);
+    this.addLight(L, new THREE.Vector3(), 0xff9a3c, 1, 'lamp', anchor);
   }
 
   bed(L, i, j, F) {
@@ -965,7 +974,7 @@ export class World {
 
     // relámpagos
     this.lightning = Math.max(0, this.lightning - dt * 3.5);
-    this.mats.window.emissiveIntensity = 0.4 + this.lightning * 8;
+    this.mats.window.emissiveIntensity = LUZ.ventanas + this.lightning * 8;
     this.actualizarCuadros(player);
 
     // reparto de luces puntuales entre las fuentes más cercanas
@@ -985,7 +994,8 @@ export class World {
       if (!s) { pl.intensity = 0; continue; }
       pl.position.copy(s.pos);
       pl.color.copy(s.color);
-      pl.distance = s.distance;
+      const F = LUZ.fuentes[TIPO_FUENTE[s.kind]];
+      pl.distance = F.alcance * Math.sqrt(s.escala);
       let f = this.flick(s, t);
       // las llamas se encogen cerca de una aparición
       let near = 99;
@@ -1002,7 +1012,7 @@ export class World {
       if (s.kind === 'moon') f *= 1 + this.lightning * 7;
       const dist = Math.sqrt(s._d);
       const fade = dist < 15 ? 1 : Math.max(0, 1 - (dist - 15) / 7);
-      pl.intensity = s.intensity * f * fade;
+      pl.intensity = F.intensidad * s.escala * f * fade;
     }
   }
 

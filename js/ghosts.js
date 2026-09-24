@@ -5,11 +5,14 @@ import { CELL, LEVEL_H } from './map.js';
 import * as TX from './textures.js';
 import { crearUniforms, materialAparicion, ponerFotograma } from './ghostmat.js';
 import { TIPOS, tipoDe } from '../assets/apariciones.js';
+import { LUZ } from './iluminacion.js';
 
 const WATCH_COS = Math.cos(THREE.MathUtils.degToRad(34));
 const WATCH_NEAR_COS = Math.cos(THREE.MathUtils.degToRad(55));
-const BURN_COS = Math.cos(THREE.MathUtils.degToRad(19));
-const SEEN_COS = Math.cos(THREE.MathUtils.degToRad(24));
+// Los conos de quemadura y de primer avistamiento siguen la apertura de la linterna
+// (con 36° de apertura: quema a menos de 20° del centro y "la ves" a menos de 25°)
+const BURN_FRAC = 0.55;
+const SEEN_FRAC = 0.7;
 const BURN_RANGE = 8.5;
 const DIE_TIME = 2.4;
 const NO_VOICE = { set() {}, update() {}, stop() {} };
@@ -74,6 +77,8 @@ class Ghost {
       if (inView && m.los(cam, head)) {
         this.watched = true;
         if (P.lightOn) {
+          const BURN_COS = Math.cos(THREE.MathUtils.degToRad(LUZ.linterna.angulo * BURN_FRAC));
+          const SEEN_COS = Math.cos(THREE.MathUtils.degToRad(LUZ.linterna.angulo * SEEN_FRAC));
           const lx = head.x - P.lightPos.x, ly = head.y - P.lightPos.y, lz = head.z - P.lightPos.z;
           const ld = Math.sqrt(lx * lx + ly * ly + lz * lz) || 0.001;
           const lc = (lx * P.lightDir.x + ly * P.lightDir.y + lz * P.lightDir.z) / ld;

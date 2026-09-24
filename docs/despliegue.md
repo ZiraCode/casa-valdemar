@@ -6,8 +6,8 @@ El juego usa **módulos ES** (`<script type="module">` e `import`). Los navegado
 `file://` por seguridad (CORS), así que abrir `index.html` con doble clic muestra una pantalla en negro.
 Basta con **cualquier servidor HTTP de ficheros estáticos**: no hay backend, base de datos ni paso de compilación.
 
-`iniciar.bat` es solo una comodidad para Windows. Lanza `python -m http.server 8000` (o `npx serve` si no hay Python)
-y abre el navegador. **No es necesario para publicar el juego.**
+`iniciar.bat` es solo una comodidad para Windows. Lanza `python tools/servidor.py 8000`, un servidor sin caché del
+navegador (o `npx serve` si no hay Python), y abre el navegador. **No es necesario para publicar el juego.**
 
 ## Publicar en la web
 

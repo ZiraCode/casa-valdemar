@@ -8,6 +8,8 @@ import { AudioEngine } from './audio.js';
 import { Post } from './post.js';
 import { cargarTexturas } from './textures.js';
 import { REGLAS as REGLAS_CUADROS } from '../assets/cuadros.js';
+import { LUZ, cargarLuzGuardada } from './iluminacion.js';
+import { crearPanelLuz } from './panel-luz.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -35,11 +37,15 @@ $('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
-scene.fog = new THREE.FogExp2(0x000000, 0.075);
+// Modo ajuste de luz (?luz): usa los valores guardados en este navegador y activa el panel (tecla L)
+const MODO_LUZ = new URLSearchParams(location.search).has('luz');
+if (MODO_LUZ) cargarLuzGuardada();
+
+scene.fog = new THREE.FogExp2(0x000000, LUZ.niebla);
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 80);
 
 // Sin luz general: solo un resto casi imperceptible que sube con los relámpagos.
-const ambient = new THREE.HemisphereLight(0x3a4866, 0x0c0907, 0.035);
+const ambient = new THREE.HemisphereLight(0x3a4866, 0x0c0907, LUZ.ambiente);
 scene.add(ambient);
 
 const audio = new AudioEngine();
@@ -96,7 +102,32 @@ const ghosts = new GhostManager(scene, mansion, audio, {
 renderer.compile(scene, camera);
 for (const t of [...ghosts.todasLasTexturas(), ...world.texturasCuadros()]) renderer.initTexture(t);
 
-ui.startText.textContent = 'Haz clic para entrar';
+ui.startText.textContent = MODO_LUZ ? 'Haz clic para entrar · modo ajuste de luz: pulsa L' : 'Haz clic para entrar';
+
+async function copiarTexto(texto) {
+  try { await navigator.clipboard.writeText(texto); }
+  catch {
+    const t = document.createElement('textarea');
+    t.value = texto;
+    document.body.append(t);
+    t.select();
+    document.execCommand('copy');
+    t.remove();
+  }
+}
+
+const panelLuz = MODO_LUZ ? crearPanelLuz({
+  alCambiarLente: () => player.rehacerLente(),
+  alCopiar: (texto) => copiarTexto(texto).then(() => showMessage('<small>Valores de luz copiados al portapapeles</small>', 2)),
+}) : null;
+
+function alternarPanelLuz() {
+  if (!panelLuz || G.state !== 'playing') return;
+  G.panel = panelLuz.alternar();
+  // con el panel abierto se juega sin capturar el ratón: se mira arrastrando sobre la escena
+  if (G.panel && G.locked) document.exitPointerLock();
+  else if (!G.panel) lockPointer();
+}
 
 // ------------------------------------------------------------ mensajes
 let msgTimer = null;
@@ -152,6 +183,7 @@ function pauseGame() {
   if (G.state !== 'playing') return;
   G.state = 'paused';
   player.keys.clear();
+  if (panelLuz) { panelLuz.cerrar(); G.panel = false; }
   audio.suspend();
   ui.pause.querySelector('.blink').textContent = 'Haz clic para volver';
   ui.overlay.classList.remove('hidden');
@@ -167,7 +199,7 @@ ui.overlay.addEventListener('click', () => {
 
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === renderer.domElement) startPlaying(true);
-  else if (G.locked) { G.locked = false; pauseGame(); }
+  else if (G.locked) { G.locked = false; if (!G.panel) pauseGame(); }
 });
 document.addEventListener('pointerlockerror', onLockFail);
 
@@ -197,6 +229,7 @@ document.addEventListener('keydown', (e) => {
   player.keys.add(e.code);
   if (e.repeat) return;
   if (e.code === 'Space') interact();
+  if (e.code === 'KeyL') alternarPanelLuz();
   if (e.code === 'KeyP') {
     const s = post.cycleScale();
     showMessage(`<small>Resolución interna ${Math.round(s * 100)}%</small>`, 1.5);
@@ -328,7 +361,11 @@ function updatePlaying(dt) {
     }
   }
 
-  ghosts.update(dt, G.time, player);
+  if (panelLuz?.abierto && panelLuz.congelar) {
+    ghosts.fear = ghosts.danger = ghosts.burn = 0;   // apariciones congeladas mientras se ajusta la luz
+  } else {
+    ghosts.update(dt, G.time, player);
+  }
 
   // la linterna avisa: parpadea si algo se acerca por donde no miras
   if (ghosts.danger > 0 && Math.random() < dt * (0.2 + ghosts.danger * 1.3)) {
@@ -391,13 +428,15 @@ function tick(dt) {
     if (G.deadT > (G.state === 'won' ? 3.2 : 2.6) && ui.end.classList.contains('hidden')) endScreen(G.state === 'won');
   }
 
+  world.cordura = Math.max(0, G.sanity / 100);
   world.update(dt, G.time, player, ghosts);
 
   G.hit = Math.max(0, G.hit - dt * 0.8);
   G.flash = Math.max(0, G.flash - dt * 2.5);
   G.fearS += (ghosts.fear - G.fearS) * Math.min(1, dt * 3);
   player.fearTilt = Math.sin(G.time * 0.6) * 0.025 * Math.pow(1 - G.sanity / 100, 2);
-  ambient.intensity = 0.035 + (player.L >= 1 ? world.lightning * 0.45 : 0);
+  ambient.intensity = LUZ.ambiente + (player.L >= 1 ? world.lightning * 0.45 : 0);
+  scene.fog.density = LUZ.niebla;
 
   if (audio.ready) {
     audio.setListener(camera.position, player.camDir);
@@ -419,6 +458,7 @@ function tick(dt) {
   u.uHit.value = G.hit;
   u.uFlash.value = G.flash;
   u.uFade.value = G.fade;
+  u.uExposure.value = LUZ.exposicion;
   post.render(scene, camera);
 }
 

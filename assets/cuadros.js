@@ -24,10 +24,11 @@ export const CUADROS = [
   },
 ];
 
-// Cuándo se ve la versión tétrica
+// Cuándo se ve la versión tétrica. Un cuadro solo cambia mientras no lo estás viendo
+// (fuera de pantalla o tapado por una pared): nunca lo ves cambiar, solo notas que ya no es igual.
 export const REGLAS = {
-  fueraDeLaLinterna: true,     // tétrico salvo cuando el haz de la linterna lo ilumina
-  anguloHaz: 20,               // grados desde el centro del haz para verlo normal (con 6° de margen al salir)
+  probabilidad: 0.3,           // al dejar de verlo, probabilidad de que la próxima vez esté tétrico
+  probabilidadPorLocura: 0.4,  // se suma según la cordura perdida (cordura 0 → +0,4)
   relampagos: true,            // tétrico durante el destello de un relámpago
   tetricosTrasDesterrar: 4,    // tras desterrar esta cantidad de apariciones, tétricos para siempre (0 = nunca)
 };

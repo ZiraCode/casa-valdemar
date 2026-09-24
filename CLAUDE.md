@@ -31,10 +31,13 @@ y el haz sostenido de cerca durante 5-8 s las desintegra. El jugador gana al des
 Hace falta un servidor HTTP estático, porque los módulos ES no cargan desde `file://`:
 
 ```bash
-python -m http.server 8000
+python tools/servidor.py 8000
 ```
 
-Luego abre <http://localhost:8000> (o `http://localhost:8000/?debug` para el modo depuración).
+`tools/servidor.py` es un servidor estático **sin caché del navegador**. Con `python -m http.server` el navegador puede
+quedarse con ficheros viejos (pasó con `style.css`). Luego abre <http://localhost:8000>. Hay dos modos:
+- `http://localhost:8000/?debug`: modo depuración.
+- `http://localhost:8000/?luz`: panel de ajuste de luz con la tecla L.
 El taller de texturas está en <http://localhost:8000/editor.html>.
 `iniciar.bat` hace esto mismo en Windows. En el panel de navegador de la app de escritorio existe
 `.claude/launch.json` (configuración `mansion`, puerto 8123).
@@ -54,11 +57,14 @@ El taller de texturas está en <http://localhost:8000/editor.html>.
 | `assets/cuadros/`, `assets/cuadros.js` | cuadros hechos fuera (imágenes, normal + tétrica), dónde se cuelgan y cuándo se ven tétricos |
 | `js/audio.js` | todo el sonido; voces posicionales HRTF de las apariciones |
 | `js/post.js` | render a baja resolución + pase final (tone mapping ACES, grano, viñeta, aberración) |
+| `js/iluminacion.js` | **todos los valores de luz** (`LUZ`): linterna, lente, relleno, fuentes, ventanas, ambiente, niebla, exposición |
+| `js/panel-luz.js` | panel de ajuste de luz dentro del juego (`?luz` + tecla L) |
 | `assets/texturas/*.js` | una familia de texturas por fichero (metadatos + `dibujar()`); registro en `index.js` |
 | `js/textures.js` | cargador del registro: `cargarTexturas()`, `lienzo(id)`, `textura(id)`; admite PNG |
 | `js/texlib.js` | utilidades de dibujo (`rng`, `shade`, `stains`, `drips`, `grain`...) |
 | `editor.html`, `editor/` | taller de texturas: galería, vista 2D/3D, parámetros en vivo, recarga automática y revisión |
 | `tools/validar-mapa.mjs` | validador del mapa en Node |
+| `tools/servidor.py` | servidor local sin caché (lo usan `iniciar.bat` y `.claude/launch.json`) |
 
 ## Documentación de referencia
 
@@ -86,6 +92,9 @@ El taller de texturas está en <http://localhost:8000/editor.html>.
 - **Texturas:** cambiar los parámetros o el código de una familia cambia el juego. Si el cambio es solo de organización,
   comprueba que las texturas salen idénticas píxel a píxel (comparando `getImageData`, como se hizo al separarlas).
   No uses `willReadFrequently` en los lienzos: cambia el suavizado de todas las texturas.
+- **Luz:** no escribas intensidades en el código; todo sale de `LUZ` (`js/iluminacion.js`). La linterna usa caída 1,3
+  y no 2, a propósito: con 2 quema de cerca. El autor quiere una linterna **amplia y difusa** y poca luz ambiental.
+  Ajustes finos: pídele que use el panel `?luz` y que te pase los valores.
 - El audio solo existe tras el primer clic (`audio.ready`). Cualquier nodo de audio debe crearse de forma perezosa.
   El `AudioContext` se suspende en pausa y con la pestaña oculta.
 - En el panel de navegador de la app, `requestAnimationFrame` **no corre si el panel está oculto**: usa `?debug` y
