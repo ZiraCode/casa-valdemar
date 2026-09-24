@@ -3,6 +3,8 @@
 FPS de terror psicológico para navegador (HTML5 + three.js), al estilo de Doom y Wolfenstein 3D.
 Las texturas y el sonido se generan por código, así que no hay ficheros de recursos.
 
+**Jugar online:** <https://ziracode.github.io/casa-valdemar/>
+
 ## Cómo jugar
 
 El juego usa módulos ES, así que necesita un servidor HTTP (abrir `index.html` con doble clic no funciona):

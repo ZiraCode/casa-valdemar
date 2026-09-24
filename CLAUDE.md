@@ -19,7 +19,10 @@ y el haz sostenido de cerca durante 5-8 s las desintegra. El jugador gana al des
   chimenea, luna en las ventanas). La oscuridad y el sonido son la mecánica, no un adorno.
 - Después de tocar el mapa, ejecuta siempre `node tools/validar-mapa.mjs`.
 - **Git:** rama `main`, mensajes de commit en español. `.gitattributes` fuerza LF, salvo en `.bat` (CRLF).
-  Aún no hay remoto configurado.
+  Remoto `origin` = <https://github.com/ZiraCode/casa-valdemar> (público).
+- **Publicación:** GitHub Pages sirve la rama `main` (raíz, sin Jekyll gracias a `.nojekyll`) en
+  <https://ziracode.github.io/casa-valdemar/>. **Cada `git push` a `main` publica el juego** en ~1 minuto.
+  No subas cambios a medio hacer a `main`; usa una rama si el trabajo es largo.
 
 ## Ejecutar
 
