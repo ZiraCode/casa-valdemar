@@ -10,8 +10,10 @@ y el haz sostenido de cerca durante 5-8 s las desintegra. El jugador gana al des
   Los identificadores de código van en inglés, salvo excepciones que ya existen (`LEVEL_NAMES`, etc.).
 - **Sin paso de compilación.** Son módulos ES nativos y three.js **r160** se carga por importmap desde jsDelivr
   (`index.html`). No añadas npm, bundlers ni TypeScript salvo que el usuario lo pida.
-- **Sin ficheros de recursos.** Las texturas se dibujan en canvas (`js/textures.js`) y el sonido es síntesis
-  Web Audio (`js/audio.js`). Mantén esta línea: si hace falta un recurso nuevo, se genera por código.
+- **Gráficos 2D generados por código, nunca modelos 3D** (decisión del autor). Las texturas se dibujan en canvas,
+  una familia por fichero en `assets/texturas/` (ver [docs/graficos.md](docs/graficos.md)). Solo en casos concretos
+  se admite un PNG. Los muebles se construyen con primitivas en `js/world.js`. El sonido es síntesis Web Audio
+  (`js/audio.js`), sin ficheros de audio.
 - **El rendimiento manda** ("que no vaya a trompicones"). No crees luces ni materiales nuevos en tiempo de juego:
   cambiar el número de luces recompila shaders. La geometría estática se fusiona por material y por planta.
   Evita reservar memoria en el bucle; reutiliza vectores.
@@ -33,6 +35,7 @@ python -m http.server 8000
 ```
 
 Luego abre <http://localhost:8000> (o `http://localhost:8000/?debug` para el modo depuración).
+El taller de texturas está en <http://localhost:8000/editor.html>.
 `iniciar.bat` hace esto mismo en Windows. En el panel de navegador de la app de escritorio existe
 `.claude/launch.json` (configuración `mansion`, puerto 8123).
 
@@ -48,7 +51,10 @@ Luego abre <http://localhost:8000> (o `http://localhost:8000/?debug` para el mod
 | `js/ghosts.js` | IA de las apariciones y shader de desintegración (`onBeforeCompile`) |
 | `js/audio.js` | todo el sonido; voces posicionales HRTF de las apariciones |
 | `js/post.js` | render a baja resolución + pase final (tone mapping ACES, grano, viñeta, aberración) |
-| `js/textures.js` | generadores de texturas en canvas |
+| `assets/texturas/*.js` | una familia de texturas por fichero (metadatos + `dibujar()`); registro en `index.js` |
+| `js/textures.js` | cargador del registro: `cargarTexturas()`, `lienzo(id)`, `textura(id)`; admite PNG |
+| `js/texlib.js` | utilidades de dibujo (`rng`, `shade`, `stains`, `drips`, `grain`...) |
+| `editor.html`, `editor/` | taller de texturas: galería, vista 2D/3D, parámetros en vivo, recarga automática y revisión |
 | `tools/validar-mapa.mjs` | validador del mapa en Node |
 
 ## Documentación de referencia
@@ -56,6 +62,7 @@ Luego abre <http://localhost:8000> (o `http://localhost:8000/?debug` para el mod
 - [docs/arquitectura.md](docs/arquitectura.md): cómo encajan los módulos, el orden del bucle, la iluminación y el render.
 - [docs/mapa.md](docs/mapa.md): formato del mapa, leyenda, reglas de escaleras y cómo añadir objetos.
 - [docs/jugabilidad.md](docs/jugabilidad.md): mecánicas y **todas las constantes de ajuste**, con su fichero.
+- [docs/graficos.md](docs/graficos.md): **formato de las texturas, convenciones visuales, uso del taller y flujo de trabajo supervisado con IA**.
 - [docs/pruebas.md](docs/pruebas.md): cómo probar, incluido el modo `?debug` y las trampas del panel de navegador.
 - [docs/despliegue.md](docs/despliegue.md): cómo publicarlo en un servidor web.
 - [docs/pendiente.md](docs/pendiente.md): limitaciones conocidas e ideas de mejora.
@@ -72,6 +79,9 @@ Luego abre <http://localhost:8000> (o `http://localhost:8000/?debug` para el mod
   las vigas terminan 4 cm por debajo del techo.
 - Los materiales de las apariciones comparten programa gracias a `customProgramCacheKey`. Si cambias el shader,
   cambia también la clave (`'aparicion-v1'`).
+- **Texturas:** cambiar los parámetros o el código de una familia cambia el juego. Si el cambio es solo de organización,
+  comprueba que las texturas salen idénticas píxel a píxel (comparando `getImageData`, como se hizo al separarlas).
+  No uses `willReadFrequently` en los lienzos: cambia el suavizado de todas las texturas.
 - El audio solo existe tras el primer clic (`audio.ready`). Cualquier nodo de audio debe crearse de forma perezosa.
   El `AudioContext` se suspende en pausa y con la pestaña oculta.
 - En el panel de navegador de la app, `requestAnimationFrame` **no corre si el panel está oculto**: usa `?debug` y

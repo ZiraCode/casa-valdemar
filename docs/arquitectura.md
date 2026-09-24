@@ -5,9 +5,10 @@
 1. Espera a que cargue la fuente *Special Elite*, con un límite de 2,5 s, porque las pintadas de las paredes se dibujan con ella.
 2. Crea el `WebGLRenderer` (sin antialias, `pixelRatio` 1, sombras `PCFSoftShadowMap`, sin tone mapping, que lo hace `post.js`).
 3. Crea la escena con `FogExp2` negra de densidad 0,075 y una `HemisphereLight` casi nula (0,035) que solo sube con los relámpagos.
-4. Instancia, por este orden, `AudioEngine`, `Mansion` (datos), `World` (geometría), `Player`, `Post` y `GhostManager`.
-5. Llama a `renderer.compile()` para precompilar los shaders y evitar tirones al empezar.
-6. Arranca el bucle `frame()`, que ejecuta `requestAnimationFrame` y después `tick(dt)` con `dt ≤ 0,05`.
+4. Carga el registro de texturas (`cargarTexturas()`: importa cada familia de `assets/texturas/`).
+5. Instancia, por este orden, `AudioEngine`, `Mansion` (datos), `World` (geometría), `Player`, `Post` y `GhostManager`.
+6. Llama a `renderer.compile()` para precompilar los shaders y evitar tirones al empezar.
+7. Arranca el bucle `frame()`, que ejecuta `requestAnimationFrame` y después `tick(dt)` con `dt ≤ 0,05`.
 
 ## Orden de `tick(dt)`
 
@@ -55,6 +56,15 @@ HUD y uniforms de post → post.render
   - Las fuentes están en `lightSources`. Su tipo (`candle`, `lamp`, `fire`, `moon`) define el parpadeo.
   - Cerca de una aparición (< 4,5 m), las llamas se debilitan.
   - Las llamas visibles son `Sprite` aditivos con `fog: false`, así que se ven a lo lejos en la oscuridad.
+
+## Texturas (`js/textures.js`, `assets/texturas/`)
+
+- `index.js` lista las familias. `cargarTexturas({ recargar })` las importa dinámicamente; con `recargar` añade `?v=` para
+  saltarse la caché, y así funciona la recarga en caliente del taller.
+- `lienzo(id, extra)` crea un canvas del tamaño de la familia y llama a `dibujar(ctx, p)`, con `p` = valores de la textura +
+  `extra`. Si la textura tiene `imagen`, dibuja el PNG precargado.
+- `textura(id)` devuelve una `CanvasTexture` sRGB con filtro *nearest*, o lineal si la familia tiene `filtro: 'suave'`.
+- Detalles del formato y del taller en [graficos.md](graficos.md).
 
 ## Jugador (`js/player.js`)
 

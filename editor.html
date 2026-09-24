@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Taller de texturas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="editor/editor.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Taller de texturas</h1>
+    <span class="sub">Casa Valdemar</span>
+    <span id="estado">Cargando…</span>
+    <div class="acciones">
+      <label title="Recarga automáticamente cuando cambia un fichero de assets/texturas/">
+        <input type="checkbox" id="vigilar"> Vigilar cambios
+      </label>
+      <button id="copiar-todo" title="Copia al portapapeles las notas de todas las texturas con cambios pedidos">Copiar peticiones pendientes</button>
+      <a href="index.html">Ir al juego</a>
+    </div>
+  </header>
+
+  <div id="errores" class="hidden"></div>
+
+  <main>
+    <aside id="galeria">
+      <input id="buscar" type="search" placeholder="Buscar textura…">
+      <div id="lista"></div>
+    </aside>
+
+    <section id="centro">
+      <div class="panel" id="panel-2d">
+        <div class="barra">
+          <span class="titulo">2D</span>
+          <span class="grupo" id="zooms">
+            <button data-zoom="0" title="Ajustar al panel">Ajustar</button><button data-zoom="1">1×</button><button data-zoom="2">2×</button><button data-zoom="3">3×</button><button data-zoom="4">4×</button>
+          </span>
+          <label><input type="checkbox" id="mosaico"> Mosaico</label>
+          <button id="antes" title="Mantén pulsado para ver la versión que había al abrir el taller">Antes</button>
+          <span id="pixel"></span>
+        </div>
+        <div id="lienzo-cont"><canvas id="lienzo"></canvas><div id="error-dibujo" class="hidden"></div></div>
+      </div>
+      <div class="panel" id="panel-3d">
+        <div class="barra">
+          <span class="titulo">3D</span>
+          <span class="grupo" id="luces">
+            <button data-luz="linterna">Linterna</button><button data-luz="vela">Vela</button><button data-luz="plena">Luz plena</button>
+          </span>
+          <label title="Baja resolución, grano, viñeta y tono del juego"><input type="checkbox" id="juego" checked> Como en el juego</label>
+          <span class="ayuda">arrastra para mirar · rueda para moverte · doble clic para volver</span>
+        </div>
+        <div id="vista-3d"></div>
+      </div>
+    </section>
+
+    <aside id="detalle"></aside>
+  </main>
+
+  <div id="aviso"></div>
+
+  <script type="module" src="editor/editor.js"></script>
+</body>
+</html>

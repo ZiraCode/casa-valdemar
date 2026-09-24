@@ -43,8 +43,12 @@ js/player.js      movimiento, balanceo de cámara, linterna (SpotLight con sombr
 js/ghosts.js      IA (campo de flujo BFS entre plantas) y shader de desintegración
 js/audio.js       sonido procedural con Web Audio (HRTF posicional)
 js/post.js        postproceso: baja resolución, grano, viñeta, aberración
-js/textures.js    texturas procedurales en canvas
+js/textures.js    cargador de texturas (registro de assets/texturas/)
+js/texlib.js      utilidades de dibujo en canvas
+assets/texturas/  una familia de texturas por fichero, dibujadas por código
+editor.html       taller de texturas (editor/)
 ```
 
 Para editar el mapa, cambia las cadenas de `RAW` en `js/map.js` y valida con `node tools/validar-mapa.mjs`.
+Para ver y retocar las texturas, abre el **taller de texturas** en `editor.html` ([docs/graficos.md](docs/graficos.md)).
 La documentación técnica está en [CLAUDE.md](CLAUDE.md) y en la carpeta [docs/](docs/).

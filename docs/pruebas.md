@@ -66,7 +66,17 @@ Posiciones útiles, en metros:
 | pasillo del sótano | 41, 13 | 0 | 0 |
 | buhardilla, zona abierta | 21, 17 | 9 | 3 |
 
-## 3. Qué revisar después de cambiar algo
+## 3. Taller de texturas
+
+- Abre `editor.html`. La cabecera debe decir «36 texturas en 25 familias» (o las que haya) y no debe aparecer la franja roja.
+- Cambia un valor en un fichero de `assets/texturas/` y en ~2 s debe aparecer el aviso «Recargado: ...» y la marca **nueva**.
+- Para comprobar que una reorganización no cambia nada: dibuja cada textura antes y después y compara `getImageData`
+  byte a byte (una página HTML temporal que importe las dos versiones sirve).
+- El panel del navegador integrado pausa `requestAnimationFrame` si está oculto. Las vistas del taller se actualizan al
+  volver a mostrarlo (o al hacer una captura).
+- Una navegación que solo cambia el `#ancla` no recarga la página: añade `?r=1` para forzarla.
+
+## 4. Qué revisar después de cambiar algo
 
 - La consola sin errores ni avisos de `Mansion`.
 - Una captura en cada planta: que no haya caras sin textura, z-fighting ni luz que atraviese muros.

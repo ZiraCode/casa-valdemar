@@ -11,7 +11,7 @@ y abre el navegador. **No es necesario para publicar el juego.**
 
 ## Publicar en la web
 
-Sube la carpeta tal cual (`index.html`, `css/`, `js/`) a cualquier alojamiento estático:
+Sube la carpeta tal cual (`index.html`, `css/`, `js/`, `assets/`) a cualquier alojamiento estático:
 
 | Opción | Cómo |
 |---|---|
@@ -21,6 +21,9 @@ Sube la carpeta tal cual (`index.html`, `css/`, `js/`) a cualquier alojamiento e
 | **Servidor propio** (Apache, nginx, IIS) | copia los ficheros en la carpeta pública |
 
 No hace falta subir: `iniciar.bat`, `tools/`, `docs/`, `.claude/`, `CLAUDE.md` ni `README.md`.
+`editor.html` y `editor/` son opcionales. En GitHub Pages se publican y funcionan como visor, pero sin recarga automática,
+que solo tiene sentido en local.
+Sí hay que subir `assets/`, porque el juego dibuja sus texturas desde ahí.
 
 ### Requisitos del servidor
 
