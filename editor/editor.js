@@ -3,6 +3,7 @@
 import * as TX from '../js/textures.js';
 import { Vista3D } from './vista3d.js';
 import { TIPOS, ASIGNACION, POR_DEFECTO } from '../assets/apariciones.js';
+import { CUADROS } from '../assets/cuadros.js';
 
 const $ = (s) => document.querySelector(s);
 const CLAVE_REVISION = 'casa-valdemar-revision';
@@ -19,6 +20,7 @@ const S = {
   cambiadas: new Set(),   // ids que ya no coinciden con su versión inicial
   fuentes: new Map(),     // fichero → contenido, para detectar cambios en disco
   revision: leerRevision(),
+  imagenes: {},           // id → { img, nombre }: imagen arrastrada para probar (no se guarda)
   fotos: [],              // canvases por fotograma de la selección (con ajustes)
   frame: 0,               // fotograma mostrado en 2D
   animar: true,
@@ -91,7 +93,9 @@ const fmt = (v) => (typeof v === 'string' ? `'${v}'` : String(v));
 
 // Devuelve { cs: [canvas por fotograma] } o { e: error }
 function dibujar(id, conAjustes = true) {
-  try { return { cs: TX.lienzos(id, conAjustes ? S.ajustes[id] || {} : {}) }; }
+  const extra = conAjustes ? { ...(S.ajustes[id] || {}) } : {};
+  if (conAjustes && S.imagenes[id]) extra.imagen = S.imagenes[id].img;
+  try { return { cs: TX.lienzos(id, extra) }; }
   catch (e) { return { e }; }
 }
 
@@ -106,7 +110,8 @@ function marcas(id) {
   const t = TX.info(id);
   const rev = S.revision[id]?.estado;
   const m = [];
-  if (t.img) m.push(el('span', { class: 'marca png', title: 'Usa una imagen PNG' }, 'PNG'));
+  if (t.img) m.push(el('span', { class: 'marca png', title: 'Usa una imagen' }, 'IMG'));
+  if (S.imagenes[id]) m.push(el('span', { class: 'marca cambiada', title: 'Probando una imagen arrastrada' }, 'prueba'));
   if (S.cambiadas.has(id)) m.push(el('span', { class: 'marca cambiada', title: 'Ha cambiado desde que abriste el taller' }, 'nueva'));
   if (Object.keys(S.ajustes[id] || {}).length) m.push(el('span', { class: 'marca cambiada', title: 'Tiene parámetros probados en el taller' }, 'ajuste'));
   if (rev === 'cambios') m.push(el('span', { class: 'marca cambios', title: 'Cambios pedidos' }, '✎'));
@@ -307,8 +312,24 @@ function peticion(id) {
     l.push('', 'Valores probados en el taller (distintos de los del fichero):');
     for (const [k, v] of difs) l.push(`- ${k}: ${fmt(t.def[k])} → ${fmt(v)}`);
   }
+  if (S.imagenes[id]) l.push('', `Imagen de prueba: ${S.imagenes[id].nombre} (no está en el proyecto; la adjunto aparte).`);
   if (rev.notas?.trim()) l.push('', 'Notas:', rev.notas.trim());
   return l.join('\n');
+}
+
+// Cuadro de assets/cuadros.js al que pertenece esta textura, si lo hay
+function cuadroDeTextura(id) {
+  return CUADROS.find((q) => q.normal === id || q.tetrica === id) || null;
+}
+
+function cuadroFicha(id) {
+  const q = cuadroDeTextura(id);
+  if (!q) return null;
+  const esNormal = q.normal === id;
+  const sitios = q.sitios.map((s) => `planta ${s.planta} (${s.col},${s.fila}) pared ${s.pared}`).join(' · ');
+  return [el('dt', {}, 'Cuadro'), el('dd', {},
+    `${q.nombre}, versión ${esNormal ? 'normal' : 'tétrica'}; ${q.alto} m de alto; ${sitios || 'sin colgar'} (assets/cuadros.js). `,
+    el('button', { onclick: () => seleccionar(esNormal ? q.tetrica : q.normal) }, esNormal ? 'Ver la tétrica' : 'Ver la normal'))];
 }
 
 function tipoFicha(id) {
@@ -319,6 +340,15 @@ function tipoFicha(id) {
     + (t.clave === POR_DEFECTO ? 'Tipo por defecto de las G del mapa' : `Asignada a ${donde.join(' · ') || 'ninguna G'}`)
     + ' (assets/apariciones.js).';
   return [el('dt', {}, 'Aparición'), el('dd', {}, txt)];
+}
+
+function tamano(t, pared) {
+  const f = t.familia;
+  if (!t.img) return `${f.ancho}×${f.alto} px${pared ? ' (2 variantes de 128)' : ''}`;
+  const nw = t.img.naturalWidth, nh = t.img.naturalHeight;
+  if (!f.usaImagen) return `${nw}×${nh} px (imagen tal cual)`;
+  const w = Math.min(nw, f.anchoMax || nw), h = Math.round((w * nh) / nw);
+  return w === nw ? `${w}×${h} px` : `${w}×${h} px (original ${nw}×${nh}, reducida)`;
 }
 
 function renderDetalle() {
@@ -332,17 +362,24 @@ function renderDetalle() {
   const datos = el('dl', { class: 'datos' },
     el('dt', {}, 'Fichero'), el('dd', {}, el('code', {}, `assets/texturas/${t.fichero}.js`)),
     el('dt', {}, 'Uso'), el('dd', {}, t.def.uso || '—'),
-    el('dt', {}, 'Tamaño'), el('dd', {}, `${f.ancho}×${f.alto} px${pared ? ' (2 variantes de 128)' : ''}`),
+    el('dt', {}, 'Tamaño'), el('dd', {}, tamano(t, pared)),
     el('dt', {}, 'Formato'), el('dd', {}, f.formato),
     el('dt', {}, 'Filtro'), el('dd', {}, f.filtro === 'suave' ? 'suave' : 'nítido (píxel)'),
     TX.numFotogramas(id) > 1 ? [el('dt', {}, 'Animación'), el('dd', {}, `${TX.numFotogramas(id)} fotogramas a ${TX.fps(id)} fps`)] : null,
     tipoFicha(id),
+    cuadroFicha(id),
     t.def.imagen ? [el('dt', {}, 'Imagen'), el('dd', {}, el('code', {}, t.def.imagen))] : null,
   );
 
   const params = el('section', {}, el('h4', {}, 'Parámetros'));
   const specs = Object.entries(f.parametros || {});
-  if (t.img) params.append(el('p', { class: 'nota-pie' }, 'Esta textura usa una imagen PNG: los parámetros no se aplican.'));
+  if (f.usaImagen) {
+    const prueba = S.imagenes[id];
+    params.append(el('p', { class: 'nota-pie' },
+      prueba ? `Probando «${prueba.nombre}» (no se guarda). ` : 'Arrastra una imagen sobre la vista 2D o 3D para probarla aquí (no se guarda). ',
+      prueba ? el('button', { onclick: () => { delete S.imagenes[id]; renderDetalle(); actualizarVistas(); refrescarItem(id); } }, 'Quitar prueba') : null));
+  }
+  if (t.img && !f.usaImagen) params.append(el('p', { class: 'nota-pie' }, 'Esta textura usa una imagen tal cual: los parámetros no se aplican.'));
   else if (!specs.length) params.append(el('p', { class: 'nota-pie' }, 'Sin parámetros: se cambia editando la función dibujar() del fichero.'));
   else for (const [k, spec] of specs) params.append(control(id, k, spec, t.def[k]));
   params.append(
@@ -492,6 +529,29 @@ setInterval(() => {
   ultimoFoto = ahora;
   pasoFoto(1);
 }, 40);
+
+// arrastrar una imagen para probarla en una textura que usa imágenes (cuadros)
+function soltarImagen(e) {
+  e.preventDefault();
+  const f = [...(e.dataTransfer?.files || [])].find((x) => x.type.startsWith('image/'));
+  if (!f || !S.sel) return;
+  if (!TX.info(S.sel).familia.usaImagen) {
+    avisar('Esta textura se dibuja con código. Arrastra la imagen sobre un cuadro (familia «Cuadros»).');
+    return;
+  }
+  const id = S.sel;
+  const img = new Image();
+  img.onload = () => {
+    S.imagenes[id] = { img, nombre: f.name };
+    renderDetalle();
+    actualizarVistas();
+    avisar(`Probando ${f.name} en «${id}» (no se guarda)`);
+  };
+  img.onerror = () => avisar(`No se pudo leer ${f.name}`);
+  img.src = URL.createObjectURL(f);
+}
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', soltarImagen);
 
 // estado del shader de las apariciones en la vista 3D
 const aplicarEstadoAp = () => {

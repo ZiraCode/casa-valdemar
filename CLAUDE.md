@@ -11,8 +11,8 @@ y el haz sostenido de cerca durante 5-8 s las desintegra. El jugador gana al des
 - **Sin paso de compilación.** Son módulos ES nativos y three.js **r160** se carga por importmap desde jsDelivr
   (`index.html`). No añadas npm, bundlers ni TypeScript salvo que el usuario lo pida.
 - **Gráficos 2D generados por código, nunca modelos 3D** (decisión del autor). Las texturas se dibujan en canvas,
-  una familia por fichero en `assets/texturas/` (ver [docs/graficos.md](docs/graficos.md)). Solo en casos concretos
-  se admite un PNG. Los muebles se construyen con primitivas en `js/world.js`. El sonido es síntesis Web Audio
+  una familia por fichero en `assets/texturas/` (ver [docs/graficos.md](docs/graficos.md)). Para lo que cuesta dibujar
+  por código (los cuadros) se usan imágenes externas de pixel art, tratadas al cargar (barniz, manchas, grano). Los muebles se construyen con primitivas en `js/world.js`. El sonido es síntesis Web Audio
   (`js/audio.js`), sin ficheros de audio.
 - **El rendimiento manda** ("que no vaya a trompicones"). No crees luces ni materiales nuevos en tiempo de juego:
   cambiar el número de luces recompila shaders. La geometría estática se fusiona por material y por planta.
@@ -51,6 +51,7 @@ El taller de texturas está en <http://localhost:8000/editor.html>.
 | `js/ghosts.js` | IA de las apariciones, tipos y animación de sus sprites |
 | `js/ghostmat.js` | material y shader de las apariciones (quemadura y desintegración); lo comparten juego y taller |
 | `assets/apariciones.js` | tipos de aparición (sprites, tamaño, velocidad, voz) y qué tipo usa cada `G` del mapa |
+| `assets/cuadros/`, `assets/cuadros.js` | cuadros hechos fuera (imágenes, normal + tétrica), dónde se cuelgan y cuándo se ven tétricos |
 | `js/audio.js` | todo el sonido; voces posicionales HRTF de las apariciones |
 | `js/post.js` | render a baja resolución + pase final (tone mapping ACES, grano, viñeta, aberración) |
 | `assets/texturas/*.js` | una familia de texturas por fichero (metadatos + `dibujar()`); registro en `index.js` |

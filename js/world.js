@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CELL, LEVEL_H, COLS, ROWS, LEVELS, WALL_CHARS } from './map.js';
 import * as TX from './textures.js';
+import { CUADROS, REGLAS, DIRECCIONES } from '../assets/cuadros.js';
 
 const C = CELL, H = LEVEL_H;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -130,11 +131,16 @@ export class World {
     this.lightning = 0;
     this._v = new THREE.Vector3();
 
+    this.cuadros = [];
+    this.cuadrosTetricos = false;
+    this.reservadas = this.carasReservadas();
+
     this.makeMaterials();
     for (let L = 0; L < LEVELS; L++) this.buildShell(L);
     this.buildStairs();
     for (let L = 0; L < LEVELS; L++) this.buildDecor(L);
     this.buildRugs();
+    this.buildCuadros();
     this.flush();
     this.makeLightPool();
   }
@@ -309,7 +315,8 @@ export class World {
             if (ch === 'w') {
               this.addLight(L, new THREE.Vector3(cx + dx * 0.8, y0 + 1.7, cz + dz * 0.8), 0x5a78c0, 1.6, 5.5, 'moon');
             }
-            if (ch === '#' && (L === 1 || L === 2) && nch === '.' && this.rand() < 0.1) {
+            if (ch === '#' && (L === 1 || L === 2) && nch === '.' && this.rand() < 0.1
+                && !this.reservadas.has(`${L}:${i},${j}:${dx},${dz}`)) {
               this.addPortrait(L, cx + dx * 0.02, y0 + 1.75, cz + dz * 0.02, dx, dz);
             }
           }
@@ -380,6 +387,69 @@ export class World {
     g.rotateY(Math.atan2(dx, dz));
     g.translate(x, y, z);
     this.addGeo(L, this.mats.portrait, g);
+  }
+
+  // Caras de muro ocupadas por cuadros de assets/cuadros.js (para no poner encima un retrato al azar)
+  carasReservadas() {
+    const set = new Set();
+    for (const q of CUADROS) {
+      for (const s of q.sitios) {
+        const [dx, dz] = DIRECCIONES[s.pared];
+        set.add(`${s.planta}:${s.col + dx},${s.fila + dz}:${-dx},${-dz}`);
+      }
+    }
+    return set;
+  }
+
+  // Cuadros hechos fuera: una malla por sitio, con su textura normal y la tétrica
+  buildCuadros() {
+    for (const q of CUADROS) {
+      const normal = TX.textura(q.normal);
+      const tetrica = TX.textura(q.tetrica);
+      const ancho = q.alto * (normal.image.width / normal.image.height);
+      for (const s of q.sitios) {
+        const [dx, dz] = DIRECCIONES[s.pared];
+        const mat = new THREE.MeshStandardMaterial({ map: tetrica, color: 0xc4c4c4, roughness: 0.7 });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(ancho, q.alto), mat);
+        const x = (s.col + 0.5) * C + dx * (C / 2 - 0.02);
+        const z = (s.fila + 0.5) * C + dz * (C / 2 - 0.02);
+        mesh.position.set(x, s.planta * H + 1.7, z);
+        mesh.rotation.y = Math.atan2(-dx, -dz);
+        mesh.receiveShadow = true;
+        this.groups[s.planta].add(mesh);
+        this.cuadros.push({ id: q.id, L: s.planta, mesh, normal, tetrica, pos: mesh.position.clone(), tetricoAhora: true });
+      }
+    }
+  }
+
+  texturasCuadros() {
+    return this.cuadros.flatMap((q) => [q.normal, q.tetrica]);
+  }
+
+  // Normal bajo el haz de la linterna; tétrico en la oscuridad, de reojo, con los
+  // relámpagos o para siempre tras el evento (REGLAS en assets/cuadros.js)
+  actualizarCuadros(player) {
+    const cosDentro = Math.cos(THREE.MathUtils.degToRad(REGLAS.anguloHaz));
+    const cosFuera = Math.cos(THREE.MathUtils.degToRad(REGLAS.anguloHaz + 6));
+    for (const q of this.cuadros) {
+      if (q.L !== player.L) continue;
+      let tetrico = this.cuadrosTetricos;
+      if (!tetrico) {
+        if (REGLAS.fueraDeLaLinterna) {
+          const vx = q.pos.x - player.lightPos.x, vy = q.pos.y - player.lightPos.y, vz = q.pos.z - player.lightPos.z;
+          const d = Math.hypot(vx, vy, vz) || 1;
+          const c = (vx * player.lightDir.x + vy * player.lightDir.y + vz * player.lightDir.z) / d;
+          // histéresis: para volverse normal hay que entrar bien en el haz; para volver a tétrico, salir del todo
+          const iluminado = player.lightOn && d < 16 && c > (q.tetricoAhora ? cosDentro : cosFuera);
+          tetrico = !iluminado;
+        }
+        if (REGLAS.relampagos && this.lightning > 0.3) tetrico = true;
+      }
+      if (tetrico !== q.tetricoAhora) {
+        q.tetricoAhora = tetrico;
+        q.mesh.material.map = tetrico ? q.tetrica : q.normal;
+      }
+    }
   }
 
   buildStairs() {
@@ -896,6 +966,7 @@ export class World {
     // relámpagos
     this.lightning = Math.max(0, this.lightning - dt * 3.5);
     this.mats.window.emissiveIntensity = 0.4 + this.lightning * 8;
+    this.actualizarCuadros(player);
 
     // reparto de luces puntuales entre las fuentes más cercanas
     const cands = this._cands;

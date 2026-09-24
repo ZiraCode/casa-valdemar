@@ -24,7 +24,8 @@
 5. **Variedad de apariciones:** una que solo se mueve con la linterna apagada, otra que imita pasos, un niño que corre cuando
    no lo miras.
 6. **Final con la puerta principal:** al desterrar a las 8, abrir la `E` para salir andando, en lugar de la pantalla final.
-7. **Sustos preparados:** disparadores por casilla (una figura que cruza el fondo de un pasillo, un retrato que cambia).
+7. **Sustos preparados:** disparadores por casilla (una figura que cruza el fondo de un pasillo).
+   Los cuadros ya cambian a su versión tétrica. Los retratos aleatorios dibujados por código aún no tienen versión tétrica.
 8. **Contador de FPS y calidad automática:** bajar la resolución o la sombra si los FPS caen.
 9. **Mapa o brújula** opcional para jugadores que se pierden (valorar si resta terror).
 10. **Sombras de las velas** solo para la luz más cercana (una `PointLight` con sombra es 6 renders: cuidado).

@@ -3,7 +3,7 @@
 ## 1. Sin navegador
 
 ```bash
-node tools/validar-mapa.mjs          # mapa: tamaños, escaleras, alcanzabilidad, apariciones y sus tipos
+node tools/validar-mapa.mjs          # mapa, escaleras, alcanzabilidad, tipos de aparición y sitios de los cuadros
 ```
 
 Para comprobar la sintaxis de un módulo, cópialo con extensión `.mjs` a una carpeta temporal y ejecuta

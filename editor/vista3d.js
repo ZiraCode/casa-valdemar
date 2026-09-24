@@ -5,6 +5,7 @@ import * as TX from '../js/textures.js';
 import { Post } from '../js/post.js';
 import { crearUniforms, materialAparicion, ponerFotograma } from '../js/ghostmat.js';
 import { TIPOS } from '../assets/apariciones.js';
+import { CUADROS } from '../assets/cuadros.js';
 
 const C = 2, H = 3, N = 3;          // casilla, altura, casillas por lado
 const HALF = (C * N) / 2;           // la habitación va de -3 a 3 en x y z
@@ -233,9 +234,10 @@ export class Vista3D {
       case 'cuadro':
       case 'pintada': {
         set(this.mat.plano, tex);
-        const alto = f.formato === 'cuadro' ? 0.8 : 0.6;
+        const cuadro = CUADROS.find((q) => q.normal === id || q.tetrica === id);
+        const alto = f.formato === 'cuadro' ? (cuadro ? cuadro.alto : 0.8) : 0.6;
         this.plano.scale.set(alto * aspecto, alto, 1);
-        this.plano.position.set(0, f.formato === 'cuadro' ? 1.75 : 1.45, -HALF + 0.015);
+        this.plano.position.set(0, f.formato === 'cuadro' ? 1.7 : 1.45, -HALF + 0.015);
         this.plano.visible = true;
         break;
       }

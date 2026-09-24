@@ -2,9 +2,10 @@
 
 ## Principio
 
-Todos los gráficos del juego son **2D y se generan por código** en un canvas. No hay modelos 3D importados: los muebles
-se componen con cajas, cilindros y esferas en `js/world.js`, y así seguirá siendo (**decisión del autor: nunca modelos 3D**).
-Para un caso concreto se puede usar una imagen PNG, pero lo normal es dibujar con código.
+Todos los gráficos del juego son **2D**. No hay modelos 3D importados: los muebles se componen con cajas, cilindros y
+esferas en `js/world.js`, y así seguirá siendo (**decisión del autor: nunca modelos 3D**). Casi todo se genera por código
+en un canvas. Las **imágenes hechas fuera** (por ahora, los cuadros) se usan para lo que es difícil de dibujar así; ver
+«Cuadros e imágenes externas» más abajo.
 
 ## Dónde están
 
@@ -125,7 +126,56 @@ El material y el shader (quemadura y desintegración) están en `js/ghostmat.js`
 vista 3D del taller, los sprites de aparición tienen un selector **Calma / Quemándose / Desintegrándose** con un control
 deslizante, para verlos exactamente como en el juego y a la escala de su tipo.
 
-## Usar una imagen PNG (casos concretos)
+## Cuadros e imágenes externas
+
+Los cuadros son imágenes hechas fuera del juego (por ejemplo, generadas con otra IA en estilo pixel art). Cada uno tiene una
+**versión normal y otra tétrica**.
+
+**Dónde va cada cosa:**
+
+```
+assets/cuadros/casa.png                la imagen (y su pareja tétrica)
+assets/texturas/cuadros.js             una textura por imagen: 'cuadro-casa', 'cuadro-casa-tetrica'...
+assets/cuadros.js                      CUADROS (parejas, tamaño y dónde se cuelgan) y REGLAS
+```
+
+**Añadir un cuadro:**
+1. Copia las dos imágenes en `assets/cuadros/`.
+2. En `assets/texturas/cuadros.js`, añade dos texturas con `imagen: '../cuadros/<fichero>'`.
+3. En `assets/cuadros.js`, añade una entrada con `normal`, `tetrica`, `alto` (en metros) y `sitios`. Cada sitio es la casilla
+   transitable delante del cuadro y la pared de esa casilla donde se cuelga (`'norte'`, `'sur'`, `'este'` u `'oeste'`), que
+   tiene que ser un muro `#`.
+4. Ejecuta `node tools/validar-mapa.mjs`: comprueba que las texturas existen y que cada sitio es válido y no está repetido.
+   Los retratos aleatorios nunca se colocan en una pared ocupada por un cuadro.
+
+**Requisitos de la imagen:**
+
+| Aspecto | Requisito |
+|---|---|
+| Formato | PNG, JPG o WebP |
+| Tamaño | unos 200 px de ancho. Si es más grande se reduce al cargar (`anchoMax: 200`); más pequeña se usa tal cual |
+| Proporción | libre. El ancho en el juego sale de `alto` × la proporción. Las dos versiones de una pareja deben tener **la misma proporción y el mismo encuadre** para que el cambio no se note |
+| Marco | incluido en la imagen, como en los ejemplos |
+| Estilo | pixel art con píxeles gruesos (bloques de 3-4 px a 200 px de ancho, unos 60 px por metro, como las paredes) y colores oscuros y apagados |
+| Transparencia | no hace falta |
+| Nombre | minúsculas, sin espacios ni tildes |
+| Derechos | propia, generada por ti, de dominio público o con licencia que permita usarla (el repositorio y el juego son públicos) |
+
+**Integración:** la familia `cuadros` tiene `usaImagen: true`, así que su `dibujar()` recibe la imagen en `p.imagen` y le
+aplica **barniz** (oscurece y amarillea), **manchas** y **grano**, con parámetros ajustables en el taller.
+Cualquier familia puede usar este mecanismo.
+
+**Cuándo se ve la versión tétrica** (`REGLAS` en `assets/cuadros.js`):
+- Fuera del haz de la linterna: en la oscuridad, de reojo o a la luz de una vela. Al iluminarlo de lleno (dentro de 20° del
+  centro del haz) se ve la normal. Para volver a la tétrica hay que salir 6° más, para que no parpadee en el borde.
+- Durante el destello de los relámpagos.
+- Para siempre, a partir de la cuarta aparición desterrada (`tetricosTrasDesterrar`). El juego avisa con un susurro y un mensaje.
+
+**En el taller:** los cuadros llevan la marca **IMG**, la ficha tiene un botón para saltar entre la versión normal y la
+tétrica, y la vista 3D los cuelga a su tamaño real. Puedes **arrastrar una imagen** sobre la vista 2D o 3D para probarla
+en el cuadro seleccionado sin copiarla al proyecto (marca **prueba**, botón *Quitar prueba*).
+
+## Usar una imagen tal cual (sin tratar)
 
 Pon el PNG en `assets/texturas/` y añade `imagen` a la textura:
 
@@ -135,7 +185,8 @@ texturas: {
 },
 ```
 
-Si existe `imagen`, se usa en lugar de `dibujar()`, y el taller la muestra con la marca **PNG**. La familia sigue
+Si existe `imagen` y la familia no tiene `usaImagen`, se copia tal cual en lugar de llamar a `dibujar()`, y el taller la
+muestra con la marca **IMG**. La familia sigue
 necesitando `ancho`, `alto`, `formato` y un `dibujar()`, que puede estar vacío. Respeta los tamaños de la tabla anterior.
 Guarda las imágenes con transparencia si es un sprite.
 

@@ -52,6 +52,28 @@ for (const s of M.spawns) cuenta[tipoDe(s)] = (cuenta[tipoDe(s)] || 0) + 1;
 console.log(`Tipos de aparición: ${Object.entries(cuenta).map(([k, n]) => `${k} ×${n}`).join(', ')}`);
 problemasTipos.forEach((p) => console.log('  ' + p));
 
-const ok = !warnings.length && !unreachable.length && !problemasTipos.length && M.spawns.every((s) => dist[M.key(s.L, s.i, s.j)] >= 0);
+// Cuadros: texturas existentes y sitios en una pared # junto a una casilla transitable
+const { CUADROS, DIRECCIONES } = await import('../assets/cuadros.js');
+const problemasCuadros = [];
+const caras = new Map();
+for (const q of CUADROS) {
+  for (const k of ['normal', 'tetrica']) if (!ids.has(q[k])) problemasCuadros.push(`cuadro '${q.id}': textura '${q[k]}' no existe`);
+  for (const s of q.sitios) {
+    const d = DIRECCIONES[s.pared];
+    const donde = `cuadro '${q.id}' en planta ${s.planta} (${s.col},${s.fila}) pared ${s.pared}`;
+    if (!d) { problemasCuadros.push(`${donde}: pared desconocida`); continue; }
+    if (M.isWall(s.planta, s.col, s.fila)) problemasCuadros.push(`${donde}: la casilla es un muro, debe ser transitable`);
+    const muro = M.get(s.planta, s.col + d[0], s.fila + d[1]);
+    if (muro !== '#') problemasCuadros.push(`${donde}: esa pared es '${muro}', debe ser un muro #`);
+    const cara = `${s.planta}:${s.col + d[0]},${s.fila + d[1]}:${-d[0]},${-d[1]}`;
+    if (caras.has(cara)) problemasCuadros.push(`${donde}: pared ya ocupada por '${caras.get(cara)}'`);
+    caras.set(cara, q.id);
+  }
+}
+console.log(`Cuadros: ${CUADROS.map((q) => `${q.id} ×${q.sitios.length}`).join(', ')}`);
+problemasCuadros.forEach((p) => console.log('  ' + p));
+
+const ok = !warnings.length && !unreachable.length && !problemasTipos.length && !problemasCuadros.length
+  && M.spawns.every((s) => dist[M.key(s.L, s.i, s.j)] >= 0);
 console.log(ok ? 'MAPA OK' : 'HAY PROBLEMAS EN EL MAPA');
 process.exit(ok ? 0 : 1);

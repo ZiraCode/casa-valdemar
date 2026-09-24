@@ -79,7 +79,11 @@ avisos en error y además comprueba que todo sea alcanzable.
 
 - **Ventanas:** `WINDOWS` en `map.js`, con formato `[planta, columna, fila]`. Cada ventana es también una fuente de luz de luna.
 - **Alfombras:** `RUGS` en `world.js`, con formato `[planta, col0, fila0, col1, fila1]`, rectángulos inclusivos.
-- **Retratos:** se colocan al azar (10 %) en caras de muro `#` de las plantas 1 y 2 que dan a una casilla `.`.
+- **Retratos:** se colocan al azar (10 %) en caras de muro `#` de las plantas 1 y 2 que dan a una casilla `.`, salvo en las
+  paredes ocupadas por un cuadro.
+- **Cuadros hechos fuera:** en `assets/cuadros.js`, cada uno con sus `sitios` (casilla + pared). Ahora mismo: *Los Valdemar*
+  en la pared este de la casilla (13,12) del vestíbulo y *La casa del páramo* en la pared oeste de (1,8) del salón. Ver
+  [graficos.md](graficos.md).
 
 ## Añadir un tipo de objeto nuevo
 

@@ -44,6 +44,7 @@ El campo de flujo BFS desde la casilla del jugador se recalcula cada 0,2 s (`Gho
 | Eventos aleatorios | cada 12-34 s: golpes, susurro al oído, parpadeo, arrastre, crujido, portazo, pasos arriba (salvo en la buhardilla), piano (planta principal) |
 | Relámpagos | cada 20-55 s, solo de la planta principal hacia arriba |
 | Victoria | 4,5 s después de desterrar la última, fundido y pantalla final |
+| Cuadros tétricos | fuera del haz (> 20°, histéresis de 6°), con relámpagos y, desde la 4.ª aparición desterrada, siempre (`assets/cuadros.js`) |
 
 ## Mundo y luces — `js/world.js`
 

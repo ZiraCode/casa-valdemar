@@ -72,17 +72,30 @@ export function parametros(id, extra = {}) {
   return p;
 }
 
-// Canvas con la textura dibujada
+// Canvas con la textura dibujada.
+// Con imagen hay dos casos:
+//  - familia normal: la imagen se copia tal cual;
+//  - familia con `usaImagen: true`: el canvas toma la proporción de la imagen (con un ancho
+//    máximo `anchoMax`) y dibujar() recibe la imagen en p.imagen para tratarla.
+// `extra.imagen` (un HTMLImageElement) sustituye a la del fichero: el taller lo usa para probar imágenes.
 export function lienzo(id, extra = {}) {
   const t = info(id);
   const c = document.createElement('canvas');
   // Sin willReadFrequently a propósito: cambiaría el suavizado de todas las texturas.
   // Chrome avisa en consola de las lecturas de píxeles del grano; es inofensivo.
   const ctx = c.getContext('2d');
-  if (t.img) {
-    c.width = t.img.naturalWidth;
-    c.height = t.img.naturalHeight;
-    ctx.drawImage(t.img, 0, 0);
+  const img = extra.imagen instanceof HTMLImageElement ? extra.imagen : t.img;
+  if (img && t.familia.usaImagen) {
+    const w = Math.min(img.naturalWidth, t.familia.anchoMax || img.naturalWidth);
+    c.width = w;
+    c.height = Math.round((w * img.naturalHeight) / img.naturalWidth);
+    t.dibujar(ctx, { ...parametros(id, extra), imagen: img });
+    return c;
+  }
+  if (img) {
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
     return c;
   }
   c.width = t.familia.ancho;

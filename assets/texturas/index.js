@@ -26,5 +26,6 @@ export const FAMILIAS = [
   'lente-linterna',
   'aparicion',
   'aparicion-nina',
+  'cuadros',
   'pintada',
 ];

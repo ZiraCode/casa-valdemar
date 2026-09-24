@@ -7,6 +7,7 @@ import { GhostManager } from './ghosts.js';
 import { AudioEngine } from './audio.js';
 import { Post } from './post.js';
 import { cargarTexturas } from './textures.js';
+import { REGLAS as REGLAS_CUADROS } from '../assets/cuadros.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -75,7 +76,14 @@ const ghosts = new GhostManager(scene, mansion, audio, {
       showMessage('Silencio.<small>Por primera vez en cien años, la casa no respira.</small>', 4.2);
     } else {
       const r = ghosts.remaining;
-      showMessage(`${r === 1 ? 'Queda una' : `Quedan ${r}`}.`, 2.5);
+      // evento: a partir de cierto número de apariciones desterradas, los cuadros dejan de fingir
+      if (REGLAS_CUADROS.tetricosTrasDesterrar && ghosts.killed === REGLAS_CUADROS.tetricosTrasDesterrar) {
+        world.cuadrosTetricos = true;
+        audio.whisperEar(Math.random() < 0.5 ? -0.9 : 0.9);
+        showMessage(`${r === 1 ? 'Queda una' : `Quedan ${r}`}.<small>Los retratos de la casa han dejado de fingir.</small>`, 4.5);
+      } else {
+        showMessage(`${r === 1 ? 'Queda una' : `Quedan ${r}`}.`, 2.5);
+      }
     }
   },
   onFirstSight() {
@@ -86,7 +94,7 @@ const ghosts = new GhostManager(scene, mansion, audio, {
 
 // Precompila shaders y sube a la GPU los fotogramas de las apariciones para evitar tirones
 renderer.compile(scene, camera);
-for (const t of ghosts.todasLasTexturas()) renderer.initTexture(t);
+for (const t of [...ghosts.todasLasTexturas(), ...world.texturasCuadros()]) renderer.initTexture(t);
 
 ui.startText.textContent = 'Haz clic para entrar';
 
