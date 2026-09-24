@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import * as TX from '../js/textures.js';
 import { Post } from '../js/post.js';
+import { crearUniforms, materialAparicion, ponerFotograma } from '../js/ghostmat.js';
+import { TIPOS } from '../assets/apariciones.js';
 
 const C = 2, H = 3, N = 3;          // casilla, altura, casillas por lado
 const HALF = (C * N) / 2;           // la habitación va de -3 a 3 en x y z
@@ -54,11 +56,12 @@ export class Vista3D {
       techo: std({ map: this.texDef.techo }),
       objeto: std({}),
       plano: std({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
-      sprite: std({
-        transparent: true, alphaTest: 0.03, depthWrite: false, side: THREE.DoubleSide,
-        color: 0xb4bcc8, emissive: 0xb0c4dc, emissiveIntensity: 0.16, roughness: 1,
-      }),
     };
+    // las apariciones usan el mismo material y shader que en el juego
+    this.uniAp = crearUniforms();
+    this.mat.sprite = materialAparicion(this.texDef.pared, this.uniAp);
+    this.fotos = [];     // texturas por fotograma de la selección
+    this.fps = 0;
     this.construirHabitacion();
     this.construirExtras();
     this.construirLuces();
@@ -183,14 +186,25 @@ export class Vista3D {
 
   setJuego(on) { this.modoJuego = on; }
 
-  // Coloca la textura `id` (canvas ya dibujado) según el formato de su familia
-  mostrar(id, canvas) {
+  get esAparicion() { return this.figura.visible; }
+
+  // Estado del shader de las apariciones: 'calma', 'quemandose' (valor = quemadura)
+  // o 'desintegrando' (valor = cuánto se ha deshecho)
+  setEstadoAparicion(estado, valor) {
+    this.uniAp.uBurn.value = estado === 'calma' ? 0 : estado === 'quemandose' ? valor : 1;
+    this.uniAp.uDissolve.value = estado === 'desintegrando' ? 0.02 + valor * 0.98 : 0;
+  }
+
+  // Coloca la textura `id` (un canvas por fotograma) según el formato de su familia
+  mostrar(id, canvases) {
     const t = TX.info(id);
     const f = t.familia;
     for (const tex of this.propias) tex.dispose();
-    this.propias = [];
-    const tex = TX.toTexture(canvas, { nearest: f.filtro !== 'suave' });
-    this.propias.push(tex);
+    this.propias = canvases.map((c) => TX.toTexture(c, { nearest: f.filtro !== 'suave' }));
+    this.fotos = this.propias;
+    this.fps = TX.fps(id) || 5;
+    const tex = this.propias[0];
+    const canvas = canvases[0];
 
     // restaurar valores por defecto
     const set = (mat, map, bump) => {
@@ -234,11 +248,13 @@ export class Vista3D {
           this.aditivo.position.set(0, 1.3, -1);
           this.aditivo.visible = true;
         } else {
-          set(this.mat.sprite, tex);
-          this.mat.sprite.emissiveMap = tex;
-          const alto = 2.1;
-          this.figura.scale.set(alto * aspecto, alto, 1);
-          this.figura.position.set(0, alto / 2 + 0.1, -1.2);
+          ponerFotograma(this.mat.sprite, tex);
+          // tamaño del tipo de aparición que usa esta textura (si lo hay)
+          const tipo = Object.values(TIPOS).find((x) => x.calma === id || x.grito === id);
+          const alto = tipo ? tipo.alto : 2.1;
+          const ancho = tipo ? tipo.ancho : alto * aspecto;
+          this.figura.scale.set(ancho, alto, 1);
+          this.figura.position.set(0, alto / 2 + 0.05, -1.2);
           this.figura.visible = true;
         }
         break;
@@ -283,6 +299,14 @@ export class Vista3D {
     this.rig.quaternion.slerp(this.camera.quaternion, 1 - Math.exp(-dt * 13));
     if (this.luz === 'vela') this.vela.intensity = 4.5 * (0.86 + 0.07 * Math.sin(t * 11) + 0.06 * Math.sin(t * 27.3));
     if (this.figura.visible) this.figura.rotation.y = Math.atan2(this.pos.x - this.figura.position.x, this.pos.z - this.figura.position.z);
+    this.uniAp.uTime.value = t;
+    if (this.fotos.length > 1) {
+      const k = Math.floor(t * this.fps) % this.fotos.length;
+      if (this.figura.visible) ponerFotograma(this.mat.sprite, this.fotos[k]);
+      if (this.aditivo.visible && this.aditivo.material.map !== this.fotos[k]) {
+        this.aditivo.material.map = this.fotos[k];
+      }
+    }
 
     if (this.modoJuego) {
       this.renderer.toneMapping = THREE.NoToneMapping;

@@ -520,8 +520,9 @@ export class AudioEngine {
     f.frequency.linearRampToValueAtTime(700, t + 1.5);
   }
 
-  // voz posicional de cada aparición: susurros y un gemido ocasional
-  createVoice() {
+  // voz posicional de cada aparición: susurros y un gemido ocasional.
+  // tono > 1 la hace más aguda (la niña).
+  createVoice(tono = 1) {
     const eng = this;
     if (!this.ready) {
       return { set() {}, update() {}, stop() {} };
@@ -541,12 +542,12 @@ export class AudioEngine {
 
     const n = this.noise();
     n.playbackRate.value = 0.7 + Math.random() * 0.5;
-    const bp = this.filt('bandpass', 1500, 4);
+    const bp = this.filt('bandpass', 1500 * tono, 4);
     const wg = this.gain(0);
     n.connect(bp).connect(wg).connect(out);
     n.start(0, Math.random() * 2);
 
-    const o = this.osc('triangle', 150 + Math.random() * 60);
+    const o = this.osc('triangle', (150 + Math.random() * 60) * tono);
     const vib = this.osc('sine', 4 + Math.random() * 2);
     const vg = this.gain(5);
     vib.connect(vg).connect(o.frequency);
@@ -570,12 +571,12 @@ export class AudioEngine {
           this.t = 0.07 + Math.random() * 0.22;
           const talk = Math.random() < 0.3 ? 0 : (0.12 + Math.random() * 0.3) * (this.moving ? 1 : 0.5);
           wg.gain.setTargetAtTime(talk, now, 0.03);
-          bp.frequency.setTargetAtTime(700 + Math.random() * 2500, now, 0.04);
+          bp.frequency.setTargetAtTime((700 + Math.random() * 2500) * (1 + (tono - 1) * 0.5), now, 0.04);
         }
         this.moanT -= dt;
         if (this.moanT <= 0 && !this.dormant) {
           this.moanT = 4 + Math.random() * 8;
-          const base = 130 + Math.random() * 90;
+          const base = (130 + Math.random() * 90) * tono;
           o.frequency.setValueAtTime(base, now);
           o.frequency.linearRampToValueAtTime(base * (0.7 + Math.random() * 0.2), now + 2);
           og.gain.cancelScheduledValues(now);

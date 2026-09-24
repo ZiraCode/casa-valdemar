@@ -48,6 +48,10 @@
           </span>
           <label><input type="checkbox" id="mosaico"> Mosaico</label>
           <button id="antes" title="Mantén pulsado para ver la versión que había al abrir el taller">Antes</button>
+          <span class="grupo hidden" id="controles-anim">
+            <button id="animar" class="activo" title="Reproducir o pausar la animación">Animación</button>
+            <button id="foto-ant" title="Fotograma anterior">‹</button><span id="fotograma"></span><button id="foto-sig" title="Fotograma siguiente">›</button>
+          </span>
           <span id="pixel"></span>
         </div>
         <div id="lienzo-cont"><canvas id="lienzo"></canvas><div id="error-dibujo" class="hidden"></div></div>
@@ -59,6 +63,14 @@
             <button data-luz="linterna">Linterna</button><button data-luz="vela">Vela</button><button data-luz="plena">Luz plena</button>
           </span>
           <label title="Baja resolución, grano, viñeta y tono del juego"><input type="checkbox" id="juego" checked> Como en el juego</label>
+          <span class="grupo hidden" id="controles-aparicion" title="Estado del shader de las apariciones, como en el juego">
+            <select id="estado-ap">
+              <option value="calma">Calma</option>
+              <option value="quemandose">Quemándose</option>
+              <option value="desintegrando">Desintegrándose</option>
+            </select>
+            <input type="range" id="nivel-ap" min="0" max="1" step="0.01" value="0.5" disabled>
+          </span>
           <span class="ayuda">arrastra para mirar · rueda para moverte · doble clic para volver</span>
         </div>
         <div id="vista-3d"></div>

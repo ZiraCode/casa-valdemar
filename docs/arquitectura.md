@@ -79,13 +79,17 @@ HUD y uniforms de post → post.render
 
 ## Apariciones (`js/ghosts.js`)
 
-- Cada una es un plano de 1,05×2,1 m que siempre gira hacia la cámara, con textura de canvas. Hay dos texturas: calma y grito.
-- Material `MeshStandardMaterial` modificado con `onBeforeCompile`:
+- Cada una es un plano del tamaño de su **tipo** (`assets/apariciones.js`: la dama mide 2,1 m, la niña 1,36 m) que
+  siempre gira hacia la cámara.
+- `GhostManager.recursos(tipo)` crea una vez por tipo las texturas de cada fotograma (calma y grito) y la geometría.
+- Cada aparición tiene un único material y en cada fotograma elige la textura según el estado y el tiempo (`animar()`).
+- **Material** (`js/ghostmat.js`): un `MeshStandardMaterial` modificado con `onBeforeCompile`.
   - Uniforms `uDissolve`, `uBurn`, `uTime` y `uAlpha`.
   - Al disolverse, el ruido descarta píxeles y deja un borde de brasas.
+- La altura de la cabeza (para saber si la miras y de dónde sale su voz) es el 60 % del alto del tipo.
 - Estados: `dormant` → `hunt` → `dying` → `dead`. Ver [jugabilidad.md](jugabilidad.md).
 - **Movimiento:** siguen de centro a centro de casilla el vecino con menor distancia BFS al jugador. Con eso suben y bajan escaleras solas. Cuando están cerca, van directas hacia el jugador.
-- La voz (`audio.createVoice`) se crea de forma perezosa cuando el audio ya está listo.
+- La voz (`audio.createVoice(tono)`) se crea de forma perezosa cuando el audio ya está listo. El tono sale del tipo.
 
 ## Audio (`js/audio.js`)
 

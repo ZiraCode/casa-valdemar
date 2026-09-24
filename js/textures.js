@@ -91,7 +91,22 @@ export function lienzo(id, extra = {}) {
   return c;
 }
 
-export function toTexture(c, { nearest = true, repeat = false, srgb = true } = {}) {
+// Animación: la familia declara `animacion: { fotogramas, fps }` y dibujar() recibe p.fotograma.
+// Las texturas PNG son siempre de un solo fotograma.
+export function numFotogramas(id) {
+  const t = info(id);
+  return t.img ? 1 : t.familia.animacion?.fotogramas || 1;
+}
+export function fps(id) { return info(id).familia.animacion?.fps || 0; }
+
+// Un canvas por fotograma
+export function lienzos(id, extra = {}) {
+  const n = numFotogramas(id);
+  if (n === 1) return [lienzo(id, extra)];
+  return Array.from({ length: n }, (_, k) => lienzo(id, { ...extra, fotograma: k }));
+}
+
+export function toTexture(c,{ nearest = true, repeat = false, srgb = true } = {}) {
   const t = new THREE.CanvasTexture(c);
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   t.magFilter = nearest ? THREE.NearestFilter : THREE.LinearFilter;
@@ -105,4 +120,10 @@ export function toTexture(c, { nearest = true, repeat = false, srgb = true } = {
 export function textura(id, extra = {}, opts = {}) {
   const t = info(id);
   return toTexture(lienzo(id, extra), { nearest: t.familia.filtro !== 'suave', ...opts });
+}
+
+// Una textura de three.js por fotograma
+export function texturas(id, extra = {}, opts = {}) {
+  const t = info(id);
+  return lienzos(id, extra).map((c) => toTexture(c, { nearest: t.familia.filtro !== 'suave', ...opts }));
 }

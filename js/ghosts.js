@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import { CELL, LEVEL_H } from './map.js';
 import * as TX from './textures.js';
+import { crearUniforms, materialAparicion, ponerFotograma } from './ghostmat.js';
+import { TIPOS, tipoDe } from '../assets/apariciones.js';
 
 const WATCH_COS = Math.cos(THREE.MathUtils.degToRad(34));
 const WATCH_NEAR_COS = Math.cos(THREE.MathUtils.degToRad(55));
@@ -12,61 +14,12 @@ const BURN_RANGE = 8.5;
 const DIE_TIME = 2.4;
 const NO_VOICE = { set() {}, update() {}, stop() {} };
 
-const HEADER = /* glsl */`
-uniform float uDissolve;
-uniform float uBurn;
-uniform float uTime;
-uniform float uAlpha;
-float gh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float gn(vec2 p) {
-  vec2 i = floor(p), f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(gh(i), gh(i + vec2(1.0, 0.0)), f.x), mix(gh(i + vec2(0.0, 1.0)), gh(i + vec2(1.0, 1.0)), f.x), f.y);
-}
-`;
-
-const DISSOLVE = /* glsl */`
-#include <emissivemap_fragment>
-{
-  vec2 duv = vMapUv;
-  float n = gn(duv * vec2(9.0, 18.0) + vec2(0.0, uTime * 0.35)) * 0.65 + gn(duv * vec2(40.0, 80.0)) * 0.35;
-  if (uDissolve > 0.0) {
-    float d = uDissolve * 1.15 - (1.0 - duv.y) * 0.15;
-    if (n < d) discard;
-    float e = 1.0 - smoothstep(d, d + 0.09, n);
-    totalEmissiveRadiance += vec3(1.0, 0.28, 0.06) * e * 3.2 * diffuseColor.a;
-    diffuseColor.rgb *= 1.0 - e * 0.6;
-  }
-  float fl = 0.5 + 0.5 * sin(uTime * 38.0 + duv.y * 45.0);
-  totalEmissiveRadiance += vec3(0.75, 0.88, 1.0) * uBurn * uBurn * (0.4 + fl) * 1.4 * diffuseColor.a;
-  diffuseColor.a *= uAlpha;
-}
-`;
-
-function makeMaterial(tex, uniforms) {
-  const m = new THREE.MeshStandardMaterial({
-    map: tex, color: 0xb4bcc8, emissiveMap: tex, emissive: 0xb0c4dc, emissiveIntensity: 0.16,
-    transparent: true, alphaTest: 0.03, depthWrite: false, side: THREE.DoubleSide,
-    roughness: 1, metalness: 0,
-  });
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms.uDissolve = uniforms.uDissolve;
-    sh.uniforms.uBurn = uniforms.uBurn;
-    sh.uniforms.uTime = uniforms.uTime;
-    sh.uniforms.uAlpha = uniforms.uAlpha;
-    sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\n' + HEADER)
-      .replace('#include <emissivemap_fragment>', DISSOLVE);
-  };
-  m.customProgramCacheKey = () => 'aparicion-v1';
-  return m;
-}
-
 class Ghost {
   constructor(mgr, spawn, idx) {
     this.mgr = mgr;
     this.m = mgr.m;
     this.idx = idx;
+    this.tipo = mgr.recursos(tipoDe(spawn));
     this.x = (spawn.i + 0.5) * CELL;
     this.z = (spawn.j + 0.5) * CELL;
     this.gy = spawn.L * LEVEL_H;
@@ -87,10 +40,9 @@ class Ghost {
     this.dist = 99;
     this.glitch = 0;
 
-    this.uni = { uDissolve: { value: 0 }, uBurn: { value: 0 }, uTime: { value: 0 }, uAlpha: { value: 1 } };
-    this.matCalm = makeMaterial(mgr.texCalm, this.uni);
-    this.matScream = makeMaterial(mgr.texScream, this.uni);
-    this.mesh = new THREE.Mesh(mgr.geo, this.matCalm);
+    this.uni = crearUniforms();
+    this.mat = materialAparicion(this.tipo.calma[0], this.uni);
+    this.mesh = new THREE.Mesh(this.tipo.geo, this.mat);
     this.mesh.renderOrder = 5;
     this.mesh.frustumCulled = false;
     mgr.scene.add(this.mesh);
@@ -101,13 +53,13 @@ class Ghost {
     if (this.state === 'dead') return;
     const m = this.m;
     const u = this.uni;
-    if (!this.voice && this.mgr.audio.ready) this.voice = this.mgr.audio.createVoice();
+    if (!this.voice && this.mgr.audio.ready) this.voice = this.mgr.audio.createVoice(this.tipo.def.voz);
     const voice = this.voice || NO_VOICE;
     u.uTime.value = t + this.phase;
     this.L = m.levelFromY(this.gy);
 
     const hover = 0.08 + Math.sin(t * 1.3 + this.phase) * 0.05;
-    const head = this.mgr._head.set(this.x, this.gy + 1.25 + hover, this.z);
+    const head = this.mgr._head.set(this.x, this.gy + this.tipo.def.alto * 0.6 + hover, this.z);
     const cam = P.camera.position;
     const vx = head.x - cam.x, vy = head.y - cam.y, vz = head.z - cam.z;
     const dist = Math.sqrt(vx * vx + vy * vy + vz * vz) || 0.001;
@@ -190,7 +142,7 @@ class Ghost {
     if (Math.random() < dt * 0.15) this.glitch = 0.12;
     u.uAlpha.value = this.alpha * pulse * (this.glitch > 0 ? 0.4 + Math.random() * 0.6 : 1);
     const scream = this.state === 'hunt' && dist < 3.8;
-    this.mesh.material = scream || u.uBurn.value > 0.55 ? this.matScream : this.matCalm;
+    this.animar(t, scream || u.uBurn.value > 0.55);
 
     const burnShake = u.uBurn.value * 0.06 + (this.glitch > 0 ? 0.08 : 0);
     this.place(t, hover, P, (Math.random() - 0.5) * burnShake);
@@ -200,9 +152,16 @@ class Ghost {
     voice.update(dt, head);
   }
 
+  // fotograma según el tiempo; cada aparición va desfasada
+  animar(t, grito) {
+    const frames = grito ? this.tipo.grito : this.tipo.calma;
+    const k = Math.floor(t * this.tipo.fps + this.phase * 3) % frames.length;
+    ponerFotograma(this.mat, frames[k]);
+  }
+
   place(t, hover, P, jitter) {
     const cam = P.camera.position;
-    this.mesh.position.set(this.x + jitter, this.gy + 1.1 + hover, this.z + jitter * 0.5);
+    this.mesh.position.set(this.x + jitter, this.gy + this.tipo.def.alto / 2 + 0.05 + hover, this.z + jitter * 0.5);
     this.mesh.rotation.set(0, Math.atan2(cam.x - this.x, cam.z - this.z), Math.sin(t * 0.7 + this.phase) * 0.03);
     this.mesh.visible = Math.abs(this.L - P.L) <= 1;
   }
@@ -215,7 +174,7 @@ class Ghost {
     const pdx = P.pos.x - this.x, pdz = P.pos.z - this.z;
     const pd = Math.hypot(pdx, pdz);
     let speed = pd > 14 ? 2.7 : pd > 6 ? 1.9 : 1.55;
-    speed *= 0.75 + 0.35 * (0.5 + 0.5 * Math.sin(t * 3.1 + this.phase));
+    speed *= (0.75 + 0.35 * (0.5 + 0.5 * Math.sin(t * 3.1 + this.phase))) * this.tipo.def.velocidad;
 
     let tx, tz;
     const sameFloor = Math.abs(P.feetY - this.gy) < 0.9;
@@ -279,9 +238,7 @@ export class GhostManager {
     this.m = mansion;
     this.audio = audio;
     this.hooks = hooks;
-    this.texCalm = TX.textura('aparicion');
-    this.texScream = TX.textura('aparicion-grito');
-    this.geo = new THREE.PlaneGeometry(1.05, 2.1);
+    this.tipos = new Map();   // recursos compartidos por tipo: texturas por fotograma y geometría
     this.dist = new Int16Array(mansion.nodeCount).fill(-1);
     this.flowT = 0;
     this.playerNode = -1;
@@ -296,6 +253,26 @@ export class GhostManager {
   }
 
   get remaining() { return this.total - this.killed; }
+
+  recursos(nombre) {
+    if (!this.tipos.has(nombre)) {
+      const def = TIPOS[nombre];
+      if (!def) throw new Error(`Tipo de aparición desconocido: ${nombre}`);
+      this.tipos.set(nombre, {
+        nombre, def,
+        calma: TX.texturas(def.calma),
+        grito: TX.texturas(def.grito),
+        fps: TX.fps(def.calma) || 5,
+        geo: new THREE.PlaneGeometry(def.ancho, def.alto),
+      });
+    }
+    return this.tipos.get(nombre);
+  }
+
+  // todas las texturas de las apariciones, para subirlas a la GPU al empezar
+  todasLasTexturas() {
+    return [...this.tipos.values()].flatMap((r) => [...r.calma, ...r.grito]);
+  }
 
   update(dt, t, P) {
     this.flowT -= dt;
@@ -331,7 +308,7 @@ export class GhostManager {
   }
 
   onDying(g) {
-    this.audio.ghostDie(this._head.set(g.x, g.gy + 1.2, g.z));
+    this.audio.ghostDie(this._head.set(g.x, g.gy + g.tipo.def.alto * 0.6, g.z));
     this.hooks.onDying(g);
   }
 

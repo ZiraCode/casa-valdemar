@@ -2,6 +2,7 @@
 // automática al cambiar los ficheros y revisión con notas para la IA.
 import * as TX from '../js/textures.js';
 import { Vista3D } from './vista3d.js';
+import { TIPOS, ASIGNACION, POR_DEFECTO } from '../assets/apariciones.js';
 
 const $ = (s) => document.querySelector(s);
 const CLAVE_REVISION = 'casa-valdemar-revision';
@@ -18,7 +19,9 @@ const S = {
   cambiadas: new Set(),   // ids que ya no coinciden con su versión inicial
   fuentes: new Map(),     // fichero → contenido, para detectar cambios en disco
   revision: leerRevision(),
-  actual: null,           // canvas mostrado ahora mismo
+  fotos: [],              // canvases por fotograma de la selección (con ajustes)
+  frame: 0,               // fotograma mostrado en 2D
+  animar: true,
 };
 
 // ------------------------------------------------------------ utilidades
@@ -70,7 +73,12 @@ function copiaDe(c) {
   return k;
 }
 
-function iguales(a, b) {
+function iguales(fa, fb) {
+  if (!fa || !fb || fa.length !== fb.length) return false;
+  return fa.every((a, k) => igualesLienzo(a, fb[k]));
+}
+
+function igualesLienzo(a, b) {
   if (!a || !b || a.width !== b.width || a.height !== b.height) return false;
   const da = new Uint32Array(a.getContext('2d').getImageData(0, 0, a.width, a.height).data.buffer);
   const db = new Uint32Array(b.getContext('2d').getImageData(0, 0, b.width, b.height).data.buffer);
@@ -81,9 +89,16 @@ function iguales(a, b) {
 const mismoValor = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 const fmt = (v) => (typeof v === 'string' ? `'${v}'` : String(v));
 
+// Devuelve { cs: [canvas por fotograma] } o { e: error }
 function dibujar(id, conAjustes = true) {
-  try { return { c: TX.lienzo(id, conAjustes ? S.ajustes[id] || {} : {}) }; }
+  try { return { cs: TX.lienzos(id, conAjustes ? S.ajustes[id] || {} : {}) }; }
   catch (e) { return { e }; }
+}
+
+// Tipo de aparición que usa esta textura, si lo hay
+function tipoDeTextura(id) {
+  const e = Object.entries(TIPOS).find(([, t]) => t.calma === id || t.grito === id);
+  return e ? { clave: e[0], ...e[1] } : null;
 }
 
 // ------------------------------------------------------------ galería
@@ -101,7 +116,7 @@ function marcas(id) {
 
 function miniatura(id) {
   const r = dibujar(id);
-  return r.c ? copiaDe(r.c) : el('canvas');
+  return r.cs ? copiaDe(r.cs[0]) : el('canvas');
 }
 
 function construirLista() {
@@ -170,28 +185,38 @@ function actualizarVistas() {
       return;
     }
     err.classList.add('hidden');
-    S.actual = r.c;
+    S.fotos = r.cs;
+    S.frame %= r.cs.length;
     render2D();
-    vista.mostrar(S.sel, r.c);
+    vista.mostrar(S.sel, r.cs);
     refrescarItem(S.sel);
+    const anim = r.cs.length > 1;
+    $('#controles-anim').classList.toggle('hidden', !anim);
+    $('#controles-aparicion').classList.toggle('hidden', !vista.esAparicion);
   });
 }
 
 function render2D() {
-  const src = S.antes ? S.iniciales.get(S.sel) || S.actual : S.actual;
-  if (!src) return;
+  const fotos = S.antes ? S.iniciales.get(S.sel) || S.fotos : S.fotos;
+  if (!fotos.length) return;
+  const src = fotos[S.frame % fotos.length];
   const formato = TX.info(S.sel).familia.formato;
   let cols = 1, filas = 1;
-  if (S.mosaico) {
+  const tira = S.mosaico && fotos.length > 1;   // mosaico de un sprite animado: todos los fotogramas en fila
+  if (tira) cols = fotos.length;
+  else if (S.mosaico) {
     if (formato === 'pared') cols = 2;
     else if (['suelo', 'techo', 'objeto'].includes(formato)) cols = filas = 3;
   }
+  $('#fotograma').textContent = fotos.length > 1 ? `${(S.frame % fotos.length) + 1}/${fotos.length}` : '';
   const c = $('#lienzo');
   c.width = src.width * cols;
   c.height = src.height * filas;
   const ctx = c.getContext('2d');
   ctx.imageSmoothingEnabled = false;
-  for (let y = 0; y < filas; y++) for (let x = 0; x < cols; x++) ctx.drawImage(src, x * src.width, y * src.height);
+  for (let y = 0; y < filas; y++) {
+    for (let x = 0; x < cols; x++) ctx.drawImage(tira ? fotos[x] : src, x * src.width, y * src.height);
+  }
   let z = S.zoom;
   if (!z) {
     const cont = $('#lienzo-cont');
@@ -286,6 +311,16 @@ function peticion(id) {
   return l.join('\n');
 }
 
+function tipoFicha(id) {
+  const t = tipoDeTextura(id);
+  if (!t) return null;
+  const donde = Object.entries(ASIGNACION).filter(([, v]) => v === t.clave).map(([k]) => k);
+  const txt = `${t.nombre}: ${t.alto} m de alto, velocidad ×${t.velocidad}, voz ×${t.voz}. `
+    + (t.clave === POR_DEFECTO ? 'Tipo por defecto de las G del mapa' : `Asignada a ${donde.join(' · ') || 'ninguna G'}`)
+    + ' (assets/apariciones.js).';
+  return [el('dt', {}, 'Aparición'), el('dd', {}, txt)];
+}
+
 function renderDetalle() {
   const d = $('#detalle');
   const id = S.sel;
@@ -300,6 +335,8 @@ function renderDetalle() {
     el('dt', {}, 'Tamaño'), el('dd', {}, `${f.ancho}×${f.alto} px${pared ? ' (2 variantes de 128)' : ''}`),
     el('dt', {}, 'Formato'), el('dd', {}, f.formato),
     el('dt', {}, 'Filtro'), el('dd', {}, f.filtro === 'suave' ? 'suave' : 'nítido (píxel)'),
+    TX.numFotogramas(id) > 1 ? [el('dt', {}, 'Animación'), el('dd', {}, `${TX.numFotogramas(id)} fotogramas a ${TX.fps(id)} fps`)] : null,
+    tipoFicha(id),
     t.def.imagen ? [el('dt', {}, 'Imagen'), el('dd', {}, el('code', {}, t.def.imagen))] : null,
   );
 
@@ -369,7 +406,7 @@ async function recargar(cambiados) {
   S.cambiadas.clear();
   for (const t of TX.listaTexturas()) {
     const r = dibujar(t.id, false);
-    if (!S.iniciales.has(t.id) || (r.c && !iguales(r.c, S.iniciales.get(t.id)))) S.cambiadas.add(t.id);
+    if (!S.iniciales.has(t.id) || (r.cs && !iguales(r.cs, S.iniciales.get(t.id)))) S.cambiadas.add(t.id);
   }
   construirLista();
   mostrarErrores();
@@ -403,7 +440,7 @@ await Promise.race([
 await TX.cargarTexturas();
 for (const t of TX.listaTexturas()) {
   const r = dibujar(t.id, false);
-  if (r.c) S.iniciales.set(t.id, r.c);
+  if (r.cs) S.iniciales.set(t.id, r.cs);
 }
 
 const vista = new Vista3D($('#vista-3d'));
@@ -442,11 +479,38 @@ document.querySelectorAll('#luces button').forEach((b) => {
 });
 $('#juego').addEventListener('change', (e) => vista.setJuego(e.target.checked));
 
+// animación 2D de los sprites
+const pasoFoto = (d) => { S.frame = (S.frame + d + S.fotos.length) % S.fotos.length; render2D(); };
+$('#animar').addEventListener('click', () => { S.animar = !S.animar; $('#animar').classList.toggle('activo', S.animar); });
+$('#foto-ant').addEventListener('click', () => { S.animar = false; $('#animar').classList.remove('activo'); pasoFoto(-1); });
+$('#foto-sig').addEventListener('click', () => { S.animar = false; $('#animar').classList.remove('activo'); pasoFoto(1); });
+let ultimoFoto = 0;
+setInterval(() => {
+  if (!S.animar || S.fotos.length < 2 || !S.sel) return;
+  const ahora = performance.now();
+  if (ahora - ultimoFoto < 1000 / (TX.fps(S.sel) || 5)) return;
+  ultimoFoto = ahora;
+  pasoFoto(1);
+}, 40);
+
+// estado del shader de las apariciones en la vista 3D
+const aplicarEstadoAp = () => {
+  const estado = $('#estado-ap').value;
+  $('#nivel-ap').disabled = estado === 'calma';
+  vista.setEstadoAparicion(estado, parseFloat($('#nivel-ap').value));
+};
+$('#estado-ap').addEventListener('change', aplicarEstadoAp);
+$('#nivel-ap').addEventListener('input', aplicarEstadoAp);
+
 // color y coordenadas del píxel bajo el ratón
 $('#lienzo').addEventListener('mousemove', (e) => {
-  const src = S.antes ? S.iniciales.get(S.sel) : S.actual;
-  if (!src) return;
-  const x = Math.floor(e.offsetX / S.zoomEfectivo) % src.width, y = Math.floor(e.offsetY / S.zoomEfectivo) % src.height;
+  const fotos = S.antes ? S.iniciales.get(S.sel) : S.fotos;
+  if (!fotos?.length) return;
+  const px = Math.floor(e.offsetX / S.zoomEfectivo), py = Math.floor(e.offsetY / S.zoomEfectivo);
+  const w = fotos[0].width;
+  const tira = S.mosaico && fotos.length > 1;
+  const src = tira ? fotos[Math.min(fotos.length - 1, Math.floor(px / w))] : fotos[S.frame % fotos.length];
+  const x = px % src.width, y = py % src.height;
   const [r, g, b, a] = src.getContext('2d').getImageData(x, y, 1, 1).data;
   const hex = '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
   $('#pixel').textContent = `x ${x} · y ${y} · ${hex}${a < 255 ? ` · α ${a}` : ''}`;

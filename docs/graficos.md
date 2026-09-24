@@ -32,6 +32,7 @@ export const familia = {
   ancho: 128,              // tamaño del canvas en px
   alto: 128,
   formato: 'suelo',        // cómo se muestra en el taller: pared | suelo | techo | objeto | cuadro | pintada | sprite | luz
+  animacion: { fotogramas: 4, fps: 5 },  // opcional: dibujar() se llama una vez por fotograma con p.fotograma
   filtro: 'suave',         // opcional: 'suave' = filtrado lineal; por defecto nítido (píxeles de Doom)
   mezcla: 'aditiva',       // opcional: solo para sprites de luz (llamas, halos)
   parametros: {            // controles que el taller genera automáticamente
@@ -79,6 +80,50 @@ export function dibujar(ctx, p) {
 - **Paredes:** la franja inferior (y > 124 px) es el zócalo, a la altura de las rodillas. Evita detalles que se corten mal
   entre las dos variantes.
 - **Determinismo:** nada de `Math.random()`, solo `r()`. Así la misma semilla da siempre la misma textura.
+
+## Sprites animados
+
+Si la familia declara `animacion: { fotogramas: N, fps }`, se dibuja N veces con `p.fotograma` = 0…N−1. Las reglas:
+
+- **Mismo azar en todos los fotogramas:** crea `r = rng(p.semilla)` al principio y haz siempre las mismas llamadas a `r()`,
+  en el mismo orden. Así los detalles aleatorios (bajo del vestido, mechones) no parpadean de un fotograma a otro.
+- **El movimiento sale del fotograma, no del azar.** Las apariciones usan un vaivén
+  `sw = Math.sin(p.fotograma / N * 2π)`: sumado a unas pocas coordenadas (bajo del vestido, puntas del pelo, dedos, muñeca),
+  da un balanceo en bucle. Con `sw = 0` (fotograma 0) queda la pose base.
+- **Movimientos pequeños:** 1-3 px bastan a esta resolución. Más da tirones.
+- Las texturas PNG son siempre de un fotograma.
+
+En el juego, cada aparición recorre sus fotogramas a `fps`, desfasada respecto a las demás. En el taller, la vista 2D tiene
+*Animación* (reproducir o pausar) y ‹ › para ir fotograma a fotograma; el *Mosaico* de un sprite animado muestra todos los
+fotogramas en fila.
+
+## Apariciones: tipos y asignación
+
+`assets/apariciones.js` define los **tipos** de aparición:
+
+| Campo | Qué es |
+|---|---|
+| `calma`, `grito` | identificadores de textura. La de grito se usa a menos de 3,8 m o con la quemadura por encima del 55 % |
+| `alto`, `ancho` | tamaño del sprite en metros (respeta la proporción de la textura) |
+| `velocidad` | multiplicador de la velocidad de avance |
+| `voz` | multiplicador del tono de susurros y gemidos (> 1, más aguda) |
+
+`ASIGNACION` dice qué tipo usa cada `G` del mapa (clave `"planta:columna,fila"`). El resto usa `POR_DEFECTO`.
+Ahora mismo hay dos tipos: **la dama** (6) y **la niña** (2, en los cuartos infantiles de la segunda planta y la buhardilla).
+
+Para crear un tipo nuevo:
+1. Crea su familia de sprites (con `calma` y `grito`) en `assets/texturas/` y regístrala en `index.js`.
+2. Añade el tipo en `TIPOS` y asígnalo a alguna `G` en `ASIGNACION`.
+3. Ejecuta `node tools/validar-mapa.mjs`: comprueba que las texturas existen y que las claves corresponden a apariciones del mapa.
+
+**Convenciones de los sprites de aparición:** fondo transparente, figura pálida (casi blanca, porque el material la tiñe de
+azul y la linterna la ilumina fuerte), rasgos en negro puro, halo suave que se desvanece **antes** del borde del lienzo (si no,
+se ve el rectángulo) y las líneas de exploración y el ruido de alfa del final, que le dan el aspecto etéreo. La cabeza queda
+hacia el 60 % de la altura desde los pies: el juego calcula ahí si la estás mirando.
+
+El material y el shader (quemadura y desintegración) están en `js/ghostmat.js` y los comparten el juego y el taller. En la
+vista 3D del taller, los sprites de aparición tienen un selector **Calma / Quemándose / Desintegrándose** con un control
+deslizante, para verlos exactamente como en el juego y a la escala de su tipo.
 
 ## Usar una imagen PNG (casos concretos)
 

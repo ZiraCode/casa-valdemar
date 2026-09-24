@@ -84,8 +84,9 @@ const ghosts = new GhostManager(scene, mansion, audio, {
   },
 });
 
-// Precompila shaders para evitar tirones al empezar
+// Precompila shaders y sube a la GPU los fotogramas de las apariciones para evitar tirones
 renderer.compile(scene, camera);
+for (const t of ghosts.todasLasTexturas()) renderer.initTexture(t);
 
 ui.startText.textContent = 'Haz clic para entrar';
 

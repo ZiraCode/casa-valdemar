@@ -24,7 +24,7 @@ Todos los valores son los que hay ahora en el código. Si cambias alguno, actual
 | Pérdida de exposición sin luz | 0,35 s por segundo | `update()` |
 | Duración de la desintegración | 2,4 s | `DIE_TIME` |
 | Despiertan si... | están a ≤ 8 casillas de camino o las ves a < 12 m | `update()` |
-| Velocidad | 1,55 m/s (< 6 m), 1,9 (< 14 m), 2,7 (más lejos), × 0,75–1,1 oscilante | `move()` |
+| Velocidad | 1,55 m/s (< 6 m), 1,9 (< 14 m), 2,7 (más lejos), × 0,75–1,1 oscilante, × `velocidad` del tipo (niña 1,1) | `move()` |
 | Distancia de ataque | < 0,8 m en horizontal y < 1,2 m de altura | `update()` |
 | Tras atacar | se teletransportan a 10-18 casillas, reaparecen poco a poco y esperan 3 s | `teleportAway()` |
 | Primer avistamiento (stinger) | con el cono de 24° y a < 14 m | `SEEN_COS` |

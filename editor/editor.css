@@ -113,6 +113,10 @@ main {
 .barra .grupo { display: inline-flex; gap: 2px; }
 .barra .ayuda, #pixel { color: var(--tenue); font-size: 12px; margin-left: auto; }
 #pixel { font-family: ui-monospace, Consolas, monospace; }
+#fotograma { min-width: 34px; text-align: center; color: var(--tenue); font-family: ui-monospace, Consolas, monospace; }
+#controles-aparicion { align-items: center; gap: 6px; }
+#controles-aparicion select { width: auto; padding: 2px 4px; }
+#nivel-ap { width: 110px; }
 
 /* ---------- galería ---------- */
 #buscar { margin-bottom: 10px; }

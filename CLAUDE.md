@@ -48,7 +48,9 @@ El taller de texturas está en <http://localhost:8000/editor.html>.
 | `js/map.js` | plantas en texto, escaleras, altura del suelo, colisiones, grafo BFS, línea de visión |
 | `js/world.js` | construcción de la geometría, puertas (`Door`), decoración, reparto de luces puntuales |
 | `js/player.js` | movimiento, cámara, pasos, linterna (`SpotLight` con sombras y textura de lente) |
-| `js/ghosts.js` | IA de las apariciones y shader de desintegración (`onBeforeCompile`) |
+| `js/ghosts.js` | IA de las apariciones, tipos y animación de sus sprites |
+| `js/ghostmat.js` | material y shader de las apariciones (quemadura y desintegración); lo comparten juego y taller |
+| `assets/apariciones.js` | tipos de aparición (sprites, tamaño, velocidad, voz) y qué tipo usa cada `G` del mapa |
 | `js/audio.js` | todo el sonido; voces posicionales HRTF de las apariciones |
 | `js/post.js` | render a baja resolución + pase final (tone mapping ACES, grano, viñeta, aberración) |
 | `assets/texturas/*.js` | una familia de texturas por fichero (metadatos + `dibujar()`); registro en `index.js` |
@@ -77,8 +79,9 @@ El taller de texturas está en <http://localhost:8000/editor.html>.
   linterna ilumine a través de ellos.
 - **Planos coincidentes:** nada puede quedar en `y = L·3` exacto fuera del suelo, o aparece z-fighting. Por eso
   las vigas terminan 4 cm por debajo del techo.
-- Los materiales de las apariciones comparten programa gracias a `customProgramCacheKey`. Si cambias el shader,
-  cambia también la clave (`'aparicion-v1'`).
+- Los materiales de las apariciones (`js/ghostmat.js`) comparten programa gracias a `customProgramCacheKey`. Si cambias
+  el shader, cambia también la clave (`'aparicion-v1'`). Los fotogramas se cambian con `ponerFotograma()`, que solo sustituye
+  `map`/`emissiveMap` y no recompila. `main.js` sube todos los fotogramas a la GPU al empezar.
 - **Texturas:** cambiar los parámetros o el código de una familia cambia el juego. Si el cambio es solo de organización,
   comprueba que las texturas salen idénticas píxel a píxel (comparando `getImageData`, como se hizo al separarlas).
   No uses `willReadFrequently` en los lienzos: cambia el suavizado de todas las texturas.

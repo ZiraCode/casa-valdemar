@@ -17,7 +17,7 @@ Cada casilla mide 2×2 m y cada planta 3 m de alto. La fila 0 es el norte (`-z`)
 | `^ v < >` | escalera que **sube** en esa dirección | se escribe en la planta de abajo |
 | `_` | hueco sobre una escalera | se escribe en la planta de arriba |
 | `P` | inicio del jugador | solo uno; mira al norte |
-| `G` | aparición | el juego cuenta las que haya |
+| `G` | aparición | el juego cuenta las que haya; su tipo (dama, niña...) se asigna en `assets/apariciones.js` |
 | `!` | pintada en un muro `#` vecino | los textos están en `DECALS` (`world.js`), en orden |
 | `t` | mesa | varias `t` seguidas forman una mesa larga con mantel |
 | `C` | silla | se orienta hacia la `t` vecina |
