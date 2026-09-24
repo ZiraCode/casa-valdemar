@@ -1,0 +1,243 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #b9ad97;
+  font-family: 'Special Elite', 'Courier New', monospace;
+  user-select: none;
+  cursor: default;
+}
+
+#game canvas {
+  display: block;
+  width: 100vw !important;
+  height: 100vh !important;
+  image-rendering: pixelated;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+#floor-name {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(185, 173, 151, 0.45);
+}
+
+#ghost-count {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: rgba(200, 205, 215, 0.55);
+}
+
+#crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin: -1px 0 0 -1px;
+  background: rgba(220, 210, 190, 0.35);
+  border-radius: 50%;
+}
+
+#hint {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 34px);
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: rgba(210, 200, 180, 0.7);
+  opacity: 0;
+  transition: opacity 0.25s;
+  white-space: nowrap;
+}
+#hint.show { opacity: 1; }
+
+#message {
+  position: absolute;
+  left: 50%;
+  top: 26%;
+  transform: translateX(-50%);
+  width: min(90vw, 760px);
+  text-align: center;
+  font-family: 'IM Fell English SC', serif;
+  font-size: clamp(20px, 3vw, 32px);
+  line-height: 1.35;
+  color: #cdbfa6;
+  text-shadow: 0 0 12px #000, 0 0 3px #000;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+#message.show { opacity: 1; }
+#message small {
+  display: block;
+  margin-top: 10px;
+  font-family: 'Special Elite', monospace;
+  font-size: 0.55em;
+  color: #8f8472;
+  letter-spacing: 1px;
+}
+
+#sanity {
+  position: absolute;
+  left: 22px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: rgba(185, 173, 151, 0.45);
+}
+#sanity-bar {
+  width: 160px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.07);
+}
+#sanity-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #6d1111, #a89a80);
+  transition: width 0.3s;
+}
+
+#fade {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 8;
+  transition: opacity 2s ease;
+}
+
+/* ---------- Pantallas ---------- */
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(12, 8, 6, 0.82) 0%, rgba(0, 0, 0, 0.97) 70%);
+  cursor: pointer;
+  padding: 16px;
+}
+
+.screen {
+  max-width: 720px;
+  width: 100%;
+  text-align: center;
+}
+
+h1 {
+  font-family: 'IM Fell English SC', serif;
+  font-weight: normal;
+  font-size: clamp(44px, 9vw, 92px);
+  letter-spacing: 6px;
+  color: #d8cdb8;
+  text-shadow: 0 0 30px rgba(140, 20, 10, 0.55), 0 0 4px #000;
+  animation: breathe 6s ease-in-out infinite;
+}
+
+h2 {
+  font-family: 'IM Fell English SC', serif;
+  font-weight: normal;
+  font-size: clamp(34px, 6vw, 60px);
+  color: #d8cdb8;
+  margin-bottom: 14px;
+  text-shadow: 0 0 24px rgba(140, 20, 10, 0.5);
+}
+
+.quote {
+  font-style: italic;
+  color: #8a7e6c;
+  margin: 12px 0 26px;
+  font-size: 16px;
+}
+
+.rules p {
+  margin: 8px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #b3a78f;
+}
+.rules b { color: #e2d6bd; font-weight: normal; text-decoration: underline; text-decoration-color: #6d1111; }
+
+.controls {
+  margin: 26px auto 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px 18px;
+  font-size: 13px;
+  color: #8a7e6c;
+  text-align: left;
+  max-width: 560px;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  margin-right: 6px;
+  border: 1px solid #4a4238;
+  border-bottom-width: 2px;
+  color: #cfc3aa;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+.blink {
+  margin-top: 18px;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: #d8cdb8;
+  animation: blink 2.4s ease-in-out infinite;
+}
+
+.small { font-size: 12px; color: #5f564a; margin-top: 10px; }
+
+#end-stats { color: #8a7e6c; margin-bottom: 26px; font-size: 14px; }
+
+button {
+  font-family: 'Special Elite', monospace;
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: #d8cdb8;
+  background: transparent;
+  border: 1px solid #5a4c3e;
+  padding: 10px 26px;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s;
+}
+button:hover { background: rgba(110, 20, 15, 0.35); border-color: #8c2a1c; }
+
+@keyframes blink {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.85; letter-spacing: 6px; }
+  50% { opacity: 1; letter-spacing: 8px; }
+}

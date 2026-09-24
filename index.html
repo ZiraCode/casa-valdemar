@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Casa Valdemar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="floor-name"></div>
+    <div id="ghost-count"></div>
+    <div id="crosshair"></div>
+    <div id="hint"></div>
+    <div id="message"></div>
+    <div id="sanity">
+      <span>CORDURA</span>
+      <div id="sanity-bar"><div id="sanity-fill"></div></div>
+    </div>
+  </div>
+
+  <div id="fade"></div>
+
+  <!-- Pantallas -->
+  <div id="overlay">
+    <div id="title-screen" class="screen">
+      <h1>Casa Valdemar</h1>
+      <p class="quote">«Dicen que en esta casa nadie termina de morirse del todo.»</p>
+      <div class="rules">
+        <p>Las apariciones <b>solo se mueven cuando no las miras</b>.</p>
+        <p>Mantén el haz de la linterna sobre ellas, de cerca, y aguanta.<br>
+          Entre cinco y ocho segundos después empezarán a deshacerse.</p>
+        <p>Destierra a las <b>ocho</b> para salir de aquí.</p>
+      </div>
+      <div class="controls">
+        <div><kbd>W A S D</kbd> / <kbd>flechas</kbd> moverse</div>
+        <div><kbd>Ratón</kbd> mirar y apuntar la linterna</div>
+        <div><kbd>Shift</kbd> correr</div>
+        <div><kbd>Espacio</kbd> abrir / cerrar puertas</div>
+        <div><kbd>P</kbd> resolución (retro / nítida)</div>
+        <div><kbd>Esc</kbd> pausa</div>
+      </div>
+      <p class="blink" id="start-text">Cargando la casa...</p>
+      <p class="small">Juega a oscuras y con auriculares.</p>
+    </div>
+
+    <div id="pause-screen" class="screen hidden">
+      <h2>Pausa</h2>
+      <p class="quote">Ellas no descansan mientras tú esperas.</p>
+      <p class="blink">Haz clic para volver</p>
+    </div>
+
+    <div id="end-screen" class="screen hidden">
+      <h2 id="end-title"></h2>
+      <p class="quote" id="end-text"></p>
+      <p id="end-stats"></p>
+      <button id="restart">Volver a entrar</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
