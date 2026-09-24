@@ -18,6 +18,8 @@ y el haz sostenido de cerca durante 5-8 s las desintegra. El jugador gana al des
 - **Terror psicológico ante todo.** No hay luz general: solo la linterna y puntos de luz (velas, candiles,
   chimenea, luna en las ventanas). La oscuridad y el sonido son la mecánica, no un adorno.
 - Después de tocar el mapa, ejecuta siempre `node tools/validar-mapa.mjs`.
+- **Git:** rama `main`, mensajes de commit en español. `.gitattributes` fuerza LF, salvo en `.bat` (CRLF).
+  Aún no hay remoto configurado.
 
 ## Ejecutar
 
