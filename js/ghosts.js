@@ -279,8 +279,8 @@ export class GhostManager {
     this.m = mansion;
     this.audio = audio;
     this.hooks = hooks;
-    this.texCalm = TX.toTexture(TX.ghostCanvas(false), { nearest: true });
-    this.texScream = TX.toTexture(TX.ghostCanvas(true), { nearest: true });
+    this.texCalm = TX.textura('aparicion');
+    this.texScream = TX.textura('aparicion-grito');
     this.geo = new THREE.PlaneGeometry(1.05, 2.1);
     this.dist = new Int16Array(mansion.nodeCount).fill(-1);
     this.flowT = 0;

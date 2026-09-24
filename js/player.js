@@ -41,7 +41,7 @@ export class Player {
     this.spot.shadow.camera.far = 30;
     this.spot.shadow.bias = -0.0006;
     this.spot.shadow.normalBias = 0.02;
-    this.spot.map = TX.toTexture(TX.flashlightCookie(), { nearest: false });
+    this.spot.map = TX.textura('lente-linterna');
     this.rig.add(this.spot);
     this.rig.add(this.spot.target);
     this.spot.target.position.set(0, 0, -6);

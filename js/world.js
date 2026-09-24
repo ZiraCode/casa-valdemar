@@ -141,63 +141,63 @@ export class World {
 
   // ------------------------------------------------------------ materiales
   makeMaterials() {
-    const T = (c, o) => TX.toTexture(c, o);
+    const T = (id) => TX.textura(id);
     const std = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.92, metalness: 0 }, o));
     const bump = (tex, s, extra = {}) => std(Object.assign({ map: tex, bumpMap: tex, bumpScale: s }, extra));
     const M = (this.mats = {});
     M.wall = [
-      bump(T(TX.stoneWall(11)), 3),
-      bump(T(TX.wallpaper(21, 0x4a1714, 0x250605, 0x3a2416)), 1.5),
-      bump(T(TX.wallpaper(31, 0x2d3a2b, 0x131b12, 0x33251a)), 1.5),
-      bump(T(TX.planksWall(41)), 2.5),
+      bump(T('pared-sotano'), 3),
+      bump(T('pared-principal'), 1.5),
+      bump(T('pared-segunda'), 1.5),
+      bump(T('pared-buhardilla'), 2.5),
     ];
     M.floor = [
-      bump(T(TX.stoneFloor(51)), 3),
-      bump(T(TX.woodFloor(52)), 2),
-      bump(T(TX.woodFloor(62, 0x3e2a1c)), 2),
-      bump(T(TX.woodFloor(72, 0x3b2c20)), 2.5),
+      bump(T('suelo-sotano'), 3),
+      bump(T('suelo-principal'), 2),
+      bump(T('suelo-segunda'), 2),
+      bump(T('suelo-buhardilla'), 2.5),
     ];
     M.ceil = [
-      std({ map: T(TX.beamCeiling(81, 0x221a14)) }),
-      std({ map: T(TX.plaster(91)) }),
-      std({ map: T(TX.plaster(92, 0x57524a)) }),
-      std({ map: T(TX.beamCeiling(93)) }),
+      std({ map: T('techo-sotano') }),
+      std({ map: T('techo-principal') }),
+      std({ map: T('techo-segunda') }),
+      std({ map: T('techo-buhardilla') }),
     ];
     for (const m of [...M.floor, ...M.ceil]) m.userData.noCast = true;
-    M.shelf = bump(T(TX.bookshelf(101)), 2);
-    M.wine = bump(T(TX.wineRack(102)), 2);
-    M.fireplace = bump(T(TX.fireplace(103)), 2);
-    M.frontdoor = bump(T(TX.frontDoor(104)), 2);
+    M.shelf = bump(T('estanteria'), 2);
+    M.wine = bump(T('botellero'), 2);
+    M.fireplace = bump(T('chimenea'), 2);
+    M.frontdoor = bump(T('puerta-principal'), 2);
     M.window = std({
-      map: T(TX.windowTex(105, 0x2a1a14)),
-      emissiveMap: T(TX.windowTex(105, 0x2a1a14, true)),
+      map: T('ventana'),
+      emissiveMap: T('ventana-brillo'),
       emissive: 0xffffff, emissiveIntensity: 0.4, roughness: 0.4,
     });
-    M.trim = std({ map: T(TX.woodTex(111, 0x2a1a10)) });
-    M.wood = std({ map: T(TX.woodTex(112, 0x3a2416)) });
-    M.woodLight = std({ map: T(TX.woodTex(113, 0x5a3e28)) });
-    M.sheet = std({ map: T(TX.fabricTex(114)), roughness: 1 });
-    M.velvet = std({ map: T(TX.velvetTex(115)) });
-    M.carpet = std({ map: T(TX.velvetTex(116, 0x520e0b)) });
+    M.trim = std({ map: T('madera-oscura') });
+    M.wood = std({ map: T('madera') });
+    M.woodLight = std({ map: T('madera-clara') });
+    M.sheet = std({ map: T('sabana'), roughness: 1 });
+    M.velvet = std({ map: T('terciopelo') });
+    M.carpet = std({ map: T('moqueta-escalera') });
     M.brass = std({ color: 0x8a6a30, metalness: 0.75, roughness: 0.45 });
     M.iron = std({ color: 0x1c1b1a, metalness: 0.6, roughness: 0.6 });
     M.wax = std({ color: 0xe8dcc0, emissive: 0x3a1a04, emissiveIntensity: 1 });
     M.lampGlass = std({ color: 0xffd8a0, emissive: 0xffa040, emissiveIntensity: 2.2, roughness: 0.3 });
     M.enamel = std({ color: 0xcfc8b8, roughness: 0.35 });
-    M.crate = std({ map: T(TX.crateTex(117)) });
-    M.stone = std({ map: T(TX.stoneFloor(118)) });
+    M.crate = std({ map: T('caja') });
+    M.stone = std({ map: T('piedra') });
     M.porcelain = std({ color: 0xe6ddd0, roughness: 0.4 });
     M.black = std({ color: 0x050505, roughness: 0.3 });
     M.keys = std({ color: 0xd8d0c0, roughness: 0.4 });
-    M.clockFace = std({ map: T(TX.clockFace()), emissive: 0x100c06 });
+    M.clockFace = std({ map: T('esfera-reloj'), emissive: 0x100c06 });
     M.water = std({ color: 0x1a0504, roughness: 0.05, metalness: 0.4 });
-    M.rug = std({ map: T(TX.rugTex(119)), roughness: 1 });
+    M.rug = std({ map: T('alfombra'), roughness: 1 });
     M.rug.userData.noCast = true;
-    M.door = std({ map: T(TX.doorLeaf(120)) });
-    M.portrait = std({ map: T(TX.portraits(121)), roughness: 0.6 });
+    M.door = std({ map: T('hoja-puerta') });
+    M.portrait = std({ map: T('retratos'), roughness: 0.6 });
 
-    const flameTex = T(TX.flameTex(), { nearest: false });
-    const glowTex = T(TX.glowTex(), { nearest: false });
+    const flameTex = T('llama');
+    const glowTex = T('halo');
     M.flame = new THREE.SpriteMaterial({
       map: flameTex, color: 0xffd9a0, blending: THREE.AdditiveBlending,
       depthWrite: false, transparent: true, fog: false,
@@ -811,7 +811,7 @@ export class World {
     const w = this.wallDirs(L, i, j).find(([dx, dz]) => this.m.get(L, i + dx, j + dz) === '#');
     if (!w) return;
     const text = DECALS[this.decalIndex++ % DECALS.length];
-    const tex = TX.toTexture(TX.decalText(text, 500 + this.decalIndex), { nearest: false });
+    const tex = TX.textura('pintada', { texto: text, semilla: 500 + this.decalIndex });
     const mat = new THREE.MeshStandardMaterial({
       map: tex, transparent: true, depthWrite: false, roughness: 0.6,
       polygonOffset: true, polygonOffsetFactor: -2,

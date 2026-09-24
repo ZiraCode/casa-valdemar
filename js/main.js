@@ -6,6 +6,7 @@ import { Player } from './player.js';
 import { GhostManager } from './ghosts.js';
 import { AudioEngine } from './audio.js';
 import { Post } from './post.js';
+import { cargarTexturas } from './textures.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -20,6 +21,7 @@ await Promise.race([
   document.fonts.load('52px "Special Elite"').catch(() => {}),
   new Promise((r) => setTimeout(r, 2500)),
 ]);
+await cargarTexturas();
 
 // ------------------------------------------------------------ motor
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
